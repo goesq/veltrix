@@ -23,8 +23,9 @@
   --color-tag-pink: #c48aa8;
   --color-tag-yellow: #c9b46a;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  /* Bundled with the app (SIL OFL) so every platform renders the same; see main.tsx. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, Menlo, Consolas, monospace;
 }
 
 @layer base {
@@ -35,6 +36,8 @@
   }
   body {
     @apply bg-app text-fg font-sans text-[13px] antialiased select-none overflow-hidden;
+    /* Show code-like text (commands in tab titles, paths) exactly as typed: no => to ⇒ swaps. */
+    font-variant-ligatures: no-contextual;
   }
   input,
   textarea,

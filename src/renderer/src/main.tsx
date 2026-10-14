@@ -1,5 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import '@fontsource-variable/inter'
+import '@fontsource-variable/jetbrains-mono'
 import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 import { App } from './App'
@@ -10,8 +12,15 @@ import { useTerminals } from './stores/terminals'
 void useTerminals.getState().open()
 void useShellProfiles.getState().load()
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+// xterm measures the character cell when a terminal is created, so the fonts must be ready
+// before the first render (they ship with the app, so this takes milliseconds).
+void Promise.all([
+  document.fonts.load('13px "Inter Variable"'),
+  document.fonts.load('13px "JetBrains Mono Variable"'),
+]).finally(() =>
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  ),
 )
