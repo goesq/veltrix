@@ -15,7 +15,11 @@ A clean, multi-tab terminal with built-in AI agent orchestration, for macOS and 
   splits each goal into tasks, routes them to the right agent, runs independent tasks in
   parallel and passes results along to the tasks that depend on them.
 
+  
+
 <img width="1919" height="1034" alt="image" src="https://github.com/user-attachments/assets/b1225eae-2d8a-4b65-96f1-89cea50f9858" />
+
+
 
 
 Built with Electron, React, Tailwind CSS, xterm.js and node-pty.
