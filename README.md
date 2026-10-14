@@ -1,1 +1,99 @@
-# veltrix
+<p align="center">
+  <img src="resources/logo.svg" width="280" alt="Veltrix" />
+</p>
+
+# Veltrix
+
+A clean, multi-tab terminal with built-in AI agent orchestration, for macOS and Windows.
+
+- **Terminals**: up to 10 terminals in tabs, shown one at a time or all together in a grid.
+  Pick the shell per terminal (Windows PowerShell by default, Command Prompt, PowerShell 7,
+  Git Bash, WSL distros; zsh, bash, fish on macOS) or set your default in Settings.
+- **Projects**: point Veltrix at a folder, connect AI coding agents (Claude Code, Codex CLI,
+  Gemini CLI or any headless CLI), and send goals to an **orchestrator**. The orchestrator
+  splits each goal into tasks, routes them to the right agent, runs independent tasks in
+  parallel and passes results along to the tasks that depend on them.
+
+Built with Electron, React, Tailwind CSS, xterm.js and node-pty.
+
+## Getting started
+
+Requirements: Node.js 20+ and npm.
+
+```bash
+npm install
+npm run dev
+```
+
+To use agents, install the CLIs you want (`claude`, `codex`, `gemini`) and sign in to them
+as you normally would. Veltrix runs them headlessly inside the project folder.
+
+### Packaging
+
+```bash
+npm run dist:mac   # .dmg (run on macOS)
+npm run dist:win   # NSIS installer (run on Windows)
+```
+
+## How orchestration works
+
+1. You describe a goal in a project.
+2. The **planner** (Claude Code CLI by default, or the Anthropic API with your own key)
+   returns a plan: tasks, the agent for each one and the dependencies between them.
+3. Tasks whose dependencies are done start right away. Each agent runs one task at a time;
+   different agents run in parallel.
+4. Each task gets a brief in `.veltrix/tasks/<id>.md` containing the goal, the task, and the
+   results of the tasks it depends on. Agents also read and append to the shared
+   `.veltrix/CONTEXT.md`, which you can edit from the app.
+5. If a task fails, the tasks depending on it are blocked until you retry it.
+
+Agent output is shown live in the app and saved to `.veltrix/logs/`. Add `.veltrix/` to the
+project's `.gitignore` if you don't want to version it.
+
+By default, agents may edit files in the project but are not given broader permissions:
+Claude Code runs with `--permission-mode acceptEdits`, Codex with
+`--sandbox workspace-write`, Gemini with `--approval-mode auto_edit`. Use a custom command
+for anything else.
+
+## Keyboard shortcuts
+
+Every shortcut can be changed or removed in **Settings → Shortcuts**. Defaults:
+
+| Action                      | macOS     | Windows          |
+| --------------------------- | --------- | ---------------- |
+| Command palette             | `⌘K`      | `Ctrl+K`         |
+| New terminal                | `⌘T`      | `Ctrl+Shift+T`   |
+| Close terminal              | `⌘W`      | `Ctrl+Shift+W`   |
+| Next / previous terminal    | `⌘⇧]` `⌘⇧[` | `Ctrl+Tab` `Ctrl+Shift+Tab` |
+| Go to terminal 1–9          | `⌘1`–`⌘9` | `Ctrl+1`–`Ctrl+9` |
+| Toggle single / grid layout | `⌘⇧G`     | `Ctrl+Shift+G`   |
+| Add project                 | `⌘O`      | `Ctrl+Shift+O`   |
+| Show terminals / projects   | `⌘⇧1` `⌘⇧2` | `Ctrl+Shift+1` `Ctrl+Shift+2` |
+| Settings                    | `⌘,`      | `Ctrl+,`         |
+
+Shortcuts must include Ctrl, Alt or ⌘ (or be a function key) so they never swallow normal
+typing. Keys that aren't bound always reach the shell. On Windows, `Ctrl+C` copies when text
+is selected and `Ctrl+V` pastes.
+
+## Architecture
+
+```
+src/
+  shared/     Types and the IPC contract shared by every process
+  main/       Electron main process
+    infra/          Persistence, shell resolution, ANSI handling
+    terminal/       Interactive pty sessions (10-terminal limit is enforced here)
+    projects/       Project storage and the per-project .veltrix workspace
+    orchestrator/   Planning, task graph, agent runs
+    settings/       Settings; the API key is encrypted with the OS keychain
+    ipc/            Thin translation layer between IPC and the services
+  preload/    Typed, minimal bridge exposed as window.veltrix
+  renderer/   React UI (features/, components/, stores/)
+```
+
+The renderer runs sandboxed with context isolation and no Node access; everything goes through
+the typed bridge defined in `src/shared/ipc.ts`.
+
+## License
+
+[MIT](LICENSE)
