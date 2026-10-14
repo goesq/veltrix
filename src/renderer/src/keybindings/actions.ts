@@ -1,5 +1,5 @@
 import { addProject } from '../features/projects/addProject'
-import { useTerminals } from '../stores/terminals'
+import { useTerminals, workspaceTabs } from '../stores/terminals'
 import { useUi } from '../stores/ui'
 import type { KeyCombo } from './keys'
 
@@ -20,7 +20,7 @@ function openTerminal(): void {
 }
 
 function focusTerminal(position: number): void {
-  const tab = terminals().tabs[position - 1]
+  const tab = workspaceTabs(terminals().tabs)[position - 1]
   if (!tab) return
   ui().navigate('terminals')
   terminals().focus(tab.id)
@@ -60,6 +60,12 @@ export const actions = {
     group: 'Geral',
     defaults: { mac: 'Shift+Meta+2', other: 'Ctrl+Shift+2' },
     run: () => ui().navigate('projects'),
+  },
+  'view.toggleSidebar': {
+    label: 'Recolher / expandir barra lateral',
+    group: 'Geral',
+    defaults: { mac: 'Meta+B', other: 'Ctrl+Shift+B' },
+    run: () => ui().toggleSidebar(),
   },
   'view.settings': {
     label: 'Abrir configurações',

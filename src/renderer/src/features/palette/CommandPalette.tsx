@@ -6,7 +6,7 @@ import { formatCombo } from '../../keybindings/keys'
 import { cn } from '../../lib/cn'
 import { useProjects } from '../../stores/projects'
 import { useShellProfiles } from '../../stores/shellProfiles'
-import { useTerminals } from '../../stores/terminals'
+import { useTerminals, workspaceTabs } from '../../stores/terminals'
 import { useUi } from '../../stores/ui'
 
 interface Command {
@@ -53,7 +53,7 @@ export function CommandPalette() {
           void terminals.open({ profileId: profile.id })
         },
       })),
-      ...terminals.tabs.map((tab, i) => ({
+      ...workspaceTabs(terminals.tabs).map((tab, i) => ({
         id: `terminal-${tab.id}`,
         label: tab.title,
         hint: `Terminal ${i + 1}`,

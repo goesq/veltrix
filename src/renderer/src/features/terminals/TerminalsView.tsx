@@ -3,9 +3,8 @@ import { MAX_TERMINALS } from '@shared/constants'
 import { Button, IconButton } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { cn } from '../../lib/cn'
-import { useTerminals } from '../../stores/terminals'
+import { useTerminals, workspaceTabs } from '../../stores/terminals'
 import { TerminalPane } from './TerminalPane'
-import { TerminalTabs } from './TerminalTabs'
 
 /** Columns used by the grid layout for a given number of terminals (max 10). */
 function gridColumns(count: number): number {
@@ -15,16 +14,16 @@ function gridColumns(count: number): number {
   return 4
 }
 
+/** The terminals listed in the sidebar, one at a time or all in a grid. */
 export function TerminalsView() {
-  const { tabs, activeId, layout, open, error, dismissError } = useTerminals()
+  const { tabs: allTabs, activeId, layout, open, error, dismissError } = useTerminals()
+  const tabs = workspaceTabs(allTabs)
   const grid = layout === 'grid' && tabs.length > 1
 
   return (
     <div className="flex h-full flex-col">
-      <TerminalTabs />
-
       {error && (
-        <div className="mx-3 mb-2 flex items-center justify-between rounded-md border border-danger/30 bg-danger/10 px-3 py-1.5 text-danger">
+        <div className="mx-3 mt-3 flex items-center justify-between rounded-md border border-danger/30 bg-danger/10 px-3 py-1.5 text-danger">
           <span>{error}</span>
           <IconButton label="Dispensar" onClick={dismissError}>
             <X size={14} />
@@ -36,7 +35,7 @@ export function TerminalsView() {
         <EmptyState
           icon={<SquareTerminal size={20} />}
           title="Nenhum terminal aberto"
-          description={`Abra até ${MAX_TERMINALS} terminais e alterne entre eles pelas abas ou pelos atalhos.`}
+          description={`Abra até ${MAX_TERMINALS} terminais e alterne entre eles pela barra lateral ou pelos atalhos.`}
           action={
             <Button variant="primary" onClick={() => void open()}>
               Novo terminal
@@ -45,8 +44,12 @@ export function TerminalsView() {
         />
       ) : (
         <div
-          className={cn('grid min-h-0 flex-1 auto-rows-fr gap-2 px-3 pb-3', !grid && 'grid-cols-1')}
-          style={grid ? { gridTemplateColumns: `repeat(${gridColumns(tabs.length)}, minmax(0, 1fr))` } : undefined}
+          className={cn('grid min-h-0 flex-1 auto-rows-fr gap-2 p-3', !grid && 'grid-cols-1')}
+          style={
+            grid
+              ? { gridTemplateColumns: `repeat(${gridColumns(tabs.length)}, minmax(0, 1fr))` }
+              : undefined
+          }
         >
           {/* All panes stay mounted so shells keep their screen state; single mode hides the rest. */}
           {tabs.map((tab) => (

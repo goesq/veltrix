@@ -1,71 +1,104 @@
-import type { ReactNode } from 'react'
-import { ChevronRight, FolderKanban, Plus, Settings, SquareTerminal, X } from 'lucide-react'
-import { MAX_TERMINALS } from '@shared/constants'
+import { FolderKanban, PanelLeftClose, PanelLeftOpen, Plus, Settings } from 'lucide-react'
+import { addProject } from '../../features/projects/addProject'
+import { useShortcutLabel } from '../../keybindings/bindings'
 import { cn } from '../../lib/cn'
 import { useProjects } from '../../stores/projects'
-import { useTerminals } from '../../stores/terminals'
-import { useUi, type View } from '../../stores/ui'
+import { useUi } from '../../stores/ui'
+import { Logo, LogoSymbol } from '../brand/Logo'
 import { IconButton } from '../ui/Button'
-import { Logo } from '../brand/Logo'
 import { StatusDot } from '../ui/StatusDot'
-import { tagDot } from '../../lib/colors'
-import { addProject } from '../../features/projects/addProject'
+import { NavItem } from './NavItem'
+import { SidebarTerminals } from './SidebarTerminals'
 
 export function Sidebar() {
-  const { view, navigate, selectedProjectId, openProject } = useUi()
-  const terminalCount = useTerminals((s) => s.tabs.length)
-  const { terminalListExpanded, toggleTerminalList } = useUi()
+  const { view, navigate, selectedProjectId, openProject, sidebarCollapsed, toggleSidebar } =
+    useUi()
   const projects = useProjects((s) => s.projects)
+  const toggleShortcut = useShortcutLabel('view.toggleSidebar')
+  const toggleLabel = `${sidebarCollapsed ? 'Expandir' : 'Recolher'} barra lateral${
+    toggleShortcut ? ` (${toggleShortcut})` : ''
+  }`
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface">
-      <div className="px-5 py-4">
-        <Logo className="h-[18px] text-fg" />
-      </div>
-
-      <nav className="flex flex-col gap-0.5 px-3">
-        <NavItem
-          icon={<SquareTerminal size={16} />}
-          label="Terminais"
-          view="terminals"
-          current={view}
-          onSelect={navigate}
-          badge={terminalCount > 0 ? `${terminalCount}/${MAX_TERMINALS}` : undefined}
-          expanded={terminalCount > 0 ? terminalListExpanded : undefined}
-          onToggle={toggleTerminalList}
-        />
-        {terminalListExpanded && <TerminalList />}
-        <NavItem
-          icon={<FolderKanban size={16} />}
-          label="Projetos"
-          view="projects"
-          current={view}
-          onSelect={navigate}
-        />
-        <NavItem
-          icon={<Settings size={16} />}
-          label="Configurações"
-          view="settings"
-          current={view}
-          onSelect={navigate}
-        />
-      </nav>
-
-      <div className="mt-6 flex items-center justify-between px-5 pb-2">
-        <span className="text-xs font-medium text-faint">Projetos</span>
-        <IconButton label="Adicionar projeto" onClick={addProject}>
-          <Plus size={14} />
+    <aside
+      className={cn(
+        'flex shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-150',
+        sidebarCollapsed ? 'w-14' : 'w-60',
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center py-3',
+          sidebarCollapsed ? 'flex-col gap-2 px-2' : 'justify-between pl-5 pr-2',
+        )}
+      >
+        {sidebarCollapsed ? (
+          <LogoSymbol className="h-3.5 text-fg" />
+        ) : (
+          <Logo className="h-[18px] text-fg" />
+        )}
+        <IconButton label={toggleLabel} onClick={toggleSidebar}>
+          {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
         </IconButton>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-3">
-        {projects.length === 0 && (
+      <nav className={cn('flex flex-col gap-0.5', sidebarCollapsed ? 'items-center px-2' : 'px-3')}>
+        <SidebarTerminals collapsed={sidebarCollapsed} />
+        <NavItem
+          collapsed={sidebarCollapsed}
+          icon={<FolderKanban size={16} />}
+          label="Projetos"
+          active={view === 'projects'}
+          onSelect={() => navigate('projects')}
+        />
+        <NavItem
+          collapsed={sidebarCollapsed}
+          icon={<Settings size={16} />}
+          label="Configurações"
+          active={view === 'settings'}
+          onSelect={() => navigate('settings')}
+        />
+      </nav>
+
+      {!sidebarCollapsed && (
+        <div className="mt-6 flex items-center justify-between px-5 pb-2">
+          <span className="text-xs font-medium text-faint">Projetos</span>
+          <IconButton label="Adicionar projeto" onClick={() => void addProject()}>
+            <Plus size={14} />
+          </IconButton>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-3',
+          sidebarCollapsed ? 'mt-4 items-center px-2' : 'px-3',
+        )}
+      >
+        {!sidebarCollapsed && projects.length === 0 && (
           <p className="px-2 py-1 text-xs text-faint">Nenhum projeto ainda.</p>
         )}
         {projects.map((project) => {
           const running = project.tasks.some((t) => t.status === 'running')
           const selected = view === 'projects' && selectedProjectId === project.id
-          return (
+          const tone = selected
+            ? 'bg-raised text-fg'
+            : 'text-muted hover:bg-raised/60 hover:text-fg'
+          return sidebarCollapsed ? (
+            <button
+              key={project.id}
+              type="button"
+              title={project.name}
+              aria-label={project.name}
+              onClick={() => openProject(project.id)}
+              className={cn(
+                'flex size-9 items-center justify-center rounded-md text-xs font-medium uppercase transition-colors',
+                tone,
+              )}
+            >
+              {project.name.slice(0, 2)}
+            </button>
+          ) : (
             <button
               key={project.id}
               type="button"
@@ -73,7 +106,7 @@ export function Sidebar() {
               title={project.path}
               className={cn(
                 'flex h-8 items-center gap-2.5 rounded-md px-2.5 text-left transition-colors',
-                selected ? 'bg-raised text-fg' : 'text-muted hover:bg-raised/60 hover:text-fg',
+                tone,
               )}
             >
               <StatusDot className={running ? 'bg-fg' : 'bg-line-strong'} pulse={running} />
@@ -86,91 +119,5 @@ export function Sidebar() {
         })}
       </div>
     </aside>
-  )
-}
-
-/** Open terminals as sub-items of "Terminais": click to focus, ✕ on hover to close. */
-function TerminalList() {
-  const { tabs, activeId, focus, close } = useTerminals()
-  const { view, navigate } = useUi()
-  if (tabs.length === 0) return null
-
-  return (
-    <ul className="flex flex-col gap-0.5 pb-1">
-      {tabs.map((tab) => {
-        const selected = view === 'terminals' && tab.id === activeId
-        return (
-          <li key={tab.id} className="group relative">
-            <button
-              type="button"
-              onClick={() => {
-                focus(tab.id)
-                navigate('terminals')
-              }}
-              className={cn(
-                'flex h-7 w-full items-center gap-2.5 rounded-md pl-9 pr-8 text-left text-[12.5px] transition-colors',
-                selected ? 'text-fg' : 'text-muted hover:bg-raised/60 hover:text-fg',
-              )}
-            >
-              <StatusDot className={tab.exitCode === undefined ? tagDot[tab.color] : 'bg-faint'} />
-              <span className="truncate">{tab.title}</span>
-            </button>
-            <IconButton
-              label="Fechar terminal"
-              onClick={() => void close(tab.id)}
-              className="absolute right-1 top-0.5 size-6 opacity-0 group-hover:opacity-100"
-            >
-              <X size={12} />
-            </IconButton>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
-
-interface NavItemProps {
-  icon: ReactNode
-  label: string
-  view: View
-  current: View
-  badge?: string
-  /** When defined, shows a chevron that collapses / expands the item's sub-list. */
-  expanded?: boolean
-  onToggle?(): void
-  onSelect(view: View): void
-}
-
-function NavItem({ icon, label, view, current, badge, expanded, onToggle, onSelect }: NavItemProps) {
-  const active = view === current
-  return (
-    <div
-      className={cn(
-        'group flex h-9 items-center rounded-md transition-colors',
-        active ? 'bg-raised text-fg' : 'text-muted hover:bg-raised/60 hover:text-fg',
-      )}
-    >
-      <button
-        type="button"
-        onClick={() => onSelect(view)}
-        className={cn(
-          'flex h-full min-w-0 flex-1 items-center gap-3 pl-2.5 text-left',
-          expanded === undefined && 'pr-2.5',
-        )}
-      >
-        {icon}
-        <span>{label}</span>
-        {badge && <span className="ml-auto pr-1 font-mono text-[11px] text-faint">{badge}</span>}
-      </button>
-      {expanded !== undefined && (
-        <IconButton
-          label={expanded ? 'Recolher lista' : 'Expandir lista'}
-          onClick={onToggle}
-          className="mr-1 size-6"
-        >
-          <ChevronRight size={13} className={cn('transition-transform', expanded && 'rotate-90')} />
-        </IconButton>
-      )}
-    </div>
   )
 }
