@@ -6,9 +6,10 @@
 
 A clean, multi-tab terminal with built-in AI agent orchestration, for macOS and Windows.
 
-- **Terminals**: up to 10 terminals in tabs, shown one at a time or all together in a grid.
-  Pick the shell per terminal (Windows PowerShell by default, Command Prompt, PowerShell 7,
-  Git Bash, WSL distros; zsh, bash, fish on macOS) or set your default in Settings.
+- **Terminals**: up to 10 terminals listed in a collapsible sidebar, shown one at a time or
+  all together in a grid. Pick the shell per terminal (Windows PowerShell by default, Command
+  Prompt, PowerShell 7, Git Bash, WSL distros; zsh, bash, fish on macOS). Terminals are named
+  after their first command and reopen in the folder they were in.
 - **Projects**: point Veltrix at a folder, connect AI coding agents (Claude Code, Codex CLI,
   Gemini CLI or any headless CLI), and send goals to an **orchestrator**. The orchestrator
   splits each goal into tasks, routes them to the right agent, runs independent tasks in
@@ -70,10 +71,20 @@ Every shortcut can be changed or removed in **Settings → Shortcuts**. Defaults
 | Add project                 | `⌘O`      | `Ctrl+Shift+O`   |
 | Show terminals / projects   | `⌘⇧1` `⌘⇧2` | `Ctrl+Shift+1` `Ctrl+Shift+2` |
 | Settings                    | `⌘,`      | `Ctrl+,`         |
+| Collapse / expand sidebar   | `⌘B`      | `Ctrl+Shift+B`   |
 
 Shortcuts must include Ctrl, Alt or ⌘ (or be a function key) so they never swallow normal
 typing. Keys that aren't bound always reach the shell. On Windows, `Ctrl+C` copies when text
 is selected and `Ctrl+V` pastes.
+
+## Working directory tracking
+
+To reopen terminals where they were, each shell reports its working directory with the
+standard OSC 7 sequence before every prompt (the same convention VS Code, Windows Terminal and
+iTerm2 use). Veltrix adds this through a small startup snippet that loads your own
+configuration first: PowerShell wraps your existing `prompt`, cmd sets `PROMPT`, bash uses an
+init file and zsh a `ZDOTDIR` that sources your dotfiles. Fish, nushell and WSL shells work
+normally but don't report their folder yet.
 
 ## Architecture
 
