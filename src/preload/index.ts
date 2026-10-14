@@ -23,6 +23,10 @@ const api: VeltrixApi = {
     onData: (listener) => subscribe(IpcChannel.terminalData, listener),
     onExit: (listener) => subscribe(IpcChannel.terminalExit, listener),
   },
+  session: {
+    load: () => ipcRenderer.invoke(IpcChannel.sessionLoad),
+    save: (session) => ipcRenderer.send(IpcChannel.sessionSave, session),
+  },
   projects: {
     list: () => ipcRenderer.invoke(IpcChannel.projectsList),
     create: (input) => ipcRenderer.invoke(IpcChannel.projectsCreate, input),

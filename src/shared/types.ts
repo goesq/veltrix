@@ -30,6 +30,21 @@ export interface TerminalInfo {
   cwd: string
 }
 
+/** A terminal as remembered between app runs. */
+export interface SavedTerminal {
+  profileId: string
+  /** Last working directory reported by the shell. */
+  cwd: string
+  /** Only set when the user renamed the terminal. */
+  title?: string
+}
+
+export interface TerminalSession {
+  terminals: SavedTerminal[]
+  activeIndex: number
+  layout: 'single' | 'grid'
+}
+
 export interface TerminalExit {
   id: string
   exitCode: number

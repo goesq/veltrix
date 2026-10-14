@@ -1,10 +1,8 @@
-import { homedir } from 'node:os'
-import { existsSync } from 'node:fs'
 import * as pty from 'node-pty'
 import { MAX_TERMINALS } from '@shared/constants'
 import type { TerminalCreateOptions, TerminalExit, TerminalInfo } from '@shared/types'
-import { childEnv } from '../infra/environment'
 import { newId } from '../infra/ids'
+import type { ShellLauncher } from './ShellLauncher'
 import type { ShellProfiles } from './ShellProfiles'
 
 export interface TerminalEvents {
@@ -24,6 +22,7 @@ export class TerminalService {
 
   constructor(
     private readonly profiles: ShellProfiles,
+    private readonly launcher: ShellLauncher,
     private readonly events: TerminalEvents,
   ) {}
 
@@ -33,14 +32,14 @@ export class TerminalService {
     const profile = await this.profiles.resolve(options.profileId)
     // Re-check: another terminal may have been created while the profile was resolving.
     if (this.sessions.size >= MAX_TERMINALS) throw new TerminalLimitError()
-    const cwd = options.cwd && existsSync(options.cwd) ? options.cwd : homedir()
+    const launch = this.launcher.launch(profile, options.cwd)
     const id = newId()
-    const session = pty.spawn(profile.file, profile.args, {
+    const session = pty.spawn(launch.file, launch.args, {
       name: 'xterm-256color',
       cols: options.cols,
       rows: options.rows,
-      cwd,
-      env: childEnv(),
+      cwd: launch.cwd,
+      env: launch.env,
     })
 
     session.onData((data) => this.events.onData(id, data))
@@ -50,6 +49,7 @@ export class TerminalService {
     })
     this.sessions.set(id, session)
 
+    const cwd = options.cwd ?? launch.cwd
     return { id, pid: session.pid, profile: { id: profile.id, name: profile.name }, cwd }
   }
 

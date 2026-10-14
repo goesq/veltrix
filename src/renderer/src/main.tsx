@@ -6,10 +6,10 @@ import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 import { App } from './App'
 import { useShellProfiles } from './stores/shellProfiles'
-import { useTerminals } from './stores/terminals'
+import { persistTerminalSession, useTerminals } from './stores/terminals'
 
-// Start with one terminal so the app is immediately useful.
-void useTerminals.getState().open()
+// Reopen the previous terminals where they were (or one fresh terminal), then keep saving.
+void useTerminals.getState().restore().then(persistTerminalSession)
 void useShellProfiles.getState().load()
 
 // xterm measures the character cell when a terminal is created, so the fonts must be ready

@@ -7,6 +7,7 @@ import type {
   Settings,
   SettingsPatch,
   ShellProfileList,
+  TerminalSession,
   TaskOutputEvent,
   TerminalCreateOptions,
   TerminalExit,
@@ -25,6 +26,8 @@ export const IpcChannel = {
   terminalKill: 'terminal:kill',
   terminalData: 'terminal:data',
   terminalExit: 'terminal:exit',
+  sessionLoad: 'session:load',
+  sessionSave: 'session:save',
 
   projectsList: 'projects:list',
   projectsCreate: 'projects:create',
@@ -60,6 +63,11 @@ export interface VeltrixApi {
     kill(id: string): Promise<void>
     onData(listener: (id: string, data: string) => void): Unsubscribe
     onExit(listener: (event: TerminalExit) => void): Unsubscribe
+  }
+  /** Open terminals restored on the next launch. */
+  session: {
+    load(): Promise<TerminalSession | null>
+    save(session: TerminalSession): void
   }
   projects: {
     list(): Promise<Project[]>

@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { isMac } from '../../lib/api'
+import { cwdFromOsc7 } from '../../lib/cwd'
 import { terminalTheme } from '../../lib/terminalTheme'
 import { useSettings } from '../../stores/settings'
 
@@ -12,20 +13,22 @@ interface XTermViewProps {
   /** Keyboard input. Omit for a read-only view. */
   onInput?(data: string): void
   onResize?(cols: number, rows: number): void
+  /** Working directory reported by the shell (OSC 7). */
+  onCwd?(cwd: string): void
   /** When it becomes true the terminal is refit and focused. */
   focused?: boolean
 }
 
 /** xterm.js wrapper that keeps itself sized to its container. */
-export function XTermView({ subscribe, onInput, onResize, focused }: XTermViewProps) {
+export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTermViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const fontSize = useSettings((s) => s.settings?.terminalFontSize ?? 13)
 
   // Callbacks change identity on every render; read them through refs inside xterm handlers.
-  const callbacks = useRef({ onInput, onResize })
-  callbacks.current = { onInput, onResize }
+  const callbacks = useRef({ onInput, onResize, onCwd })
+  callbacks.current = { onInput, onResize, onCwd }
 
   useEffect(() => {
     const container = containerRef.current!
@@ -46,6 +49,11 @@ export function XTermView({ subscribe, onInput, onResize, focused }: XTermViewPr
     terminal.attachCustomKeyEventHandler((event) => handleClipboardKeys(terminal, event))
 
     const input = terminal.onData((data) => callbacks.current.onInput?.(data))
+    const cwdReports = terminal.parser.registerOscHandler(7, (payload) => {
+      const cwd = cwdFromOsc7(payload)
+      if (cwd) callbacks.current.onCwd?.(cwd)
+      return true
+    })
     const resize = terminal.onResize(({ cols, rows }) => callbacks.current.onResize?.(cols, rows))
     const unsubscribe = subscribe((data) => terminal.write(data))
 
@@ -63,6 +71,7 @@ export function XTermView({ subscribe, onInput, onResize, focused }: XTermViewPr
       observer.disconnect()
       unsubscribe()
       input.dispose()
+      cwdReports.dispose()
       resize.dispose()
       terminal.dispose()
       terminalRef.current = null

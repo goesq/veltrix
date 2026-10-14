@@ -2,3 +2,4 @@
 export const api = window.veltrix
 
 export const isMac = api.platform === 'darwin'
+export const isWindows = api.platform === 'win32'

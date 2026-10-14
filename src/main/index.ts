@@ -9,6 +9,8 @@ import { ClaudeCliPlanner } from './orchestrator/planning/ClaudeCliPlanner'
 import type { Planner } from './orchestrator/planning/Planner'
 import { ProjectRepository } from './projects/ProjectRepository'
 import { SettingsService } from './settings/SettingsService'
+import { SessionStore } from './terminal/SessionStore'
+import { ShellLauncher } from './terminal/ShellLauncher'
 import { ShellProfiles } from './terminal/ShellProfiles'
 import { TerminalService } from './terminal/TerminalService'
 import { enableDevToolsShortcut, installAppMenu } from './menu'
@@ -27,7 +29,9 @@ function bootstrap(): void {
   const projects = new ProjectRepository(join(dataDir, 'projects.json'))
 
   const shellProfiles = new ShellProfiles(() => settings.get().defaultShellProfileId)
-  const terminals = new TerminalService(shellProfiles, {
+  const launcher = new ShellLauncher(join(dataDir, 'shell-integration'))
+  const session = new SessionStore(join(dataDir, 'session.json'))
+  const terminals = new TerminalService(shellProfiles, launcher, {
     onData: (id, data) => send(IpcChannel.terminalData, id, data),
     onExit: (event) => send(IpcChannel.terminalExit, event),
   })
@@ -46,7 +50,7 @@ function bootstrap(): void {
   orchestrator.recoverInterruptedWork()
   projects.onChange((project) => send(IpcChannel.projectsChanged, project))
 
-  registerIpc({ terminals, shellProfiles, projects, orchestrator, settings })
+  registerIpc({ terminals, shellProfiles, session, projects, orchestrator, settings })
 
   installAppMenu()
   // In development there is no app bundle yet, so give the dock the real icon.

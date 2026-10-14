@@ -17,7 +17,7 @@ interface TerminalPaneProps {
 }
 
 export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
-  const { focus, close, setLayout, trackInput } = useTerminals()
+  const { focus, close, setLayout, trackInput, setCwd } = useTerminals()
   const subscribe = useCallback(
     (write: (data: string) => void) => terminalBus.attach(tab.id, write),
     [tab.id],
@@ -59,6 +59,7 @@ export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
             trackInput(tab.id, data)
           }}
           onResize={(cols, rows) => api.terminal.resize(tab.id, cols, rows)}
+          onCwd={(cwd) => setCwd(tab.id, cwd)}
           focused={active}
         />
         {tab.exitCode !== undefined && (

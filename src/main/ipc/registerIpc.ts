@@ -5,17 +5,20 @@ import type {
   ProjectInput,
   SettingsPatch,
   TerminalCreateOptions,
+  TerminalSession,
 } from '@shared/types'
 import type { Orchestrator } from '../orchestrator/Orchestrator'
 import type { ProjectRepository } from '../projects/ProjectRepository'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
 import type { SettingsService } from '../settings/SettingsService'
+import type { SessionStore } from '../terminal/SessionStore'
 import type { ShellProfiles } from '../terminal/ShellProfiles'
 import type { TerminalService } from '../terminal/TerminalService'
 
 export interface Services {
   terminals: TerminalService
   shellProfiles: ShellProfiles
+  session: SessionStore
   projects: ProjectRepository
   orchestrator: Orchestrator
   settings: SettingsService
@@ -25,6 +28,7 @@ export interface Services {
 export function registerIpc({
   terminals,
   shellProfiles,
+  session,
   projects,
   orchestrator,
   settings,
@@ -38,6 +42,8 @@ export function registerIpc({
     terminals.resize(id, cols, rows),
   )
   ipcMain.handle(IpcChannel.terminalKill, (_e, id: string) => terminals.kill(id))
+  ipcMain.handle(IpcChannel.sessionLoad, () => session.load())
+  ipcMain.on(IpcChannel.sessionSave, (_e, snapshot: TerminalSession) => session.save(snapshot))
 
   ipcMain.handle(IpcChannel.projectsList, () => projects.list())
   ipcMain.handle(IpcChannel.projectsCreate, async (_e, input: ProjectInput) => {
