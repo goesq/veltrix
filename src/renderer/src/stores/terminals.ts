@@ -4,11 +4,14 @@ import type { AgentColor } from '@shared/types'
 import { api } from '../lib/api'
 import { colorAt } from '../lib/colors'
 import { terminalBus } from '../lib/terminalBus'
+import { AutoTitle } from '../features/terminals/autoTitle'
 
 export interface TerminalTab {
   /** Id of the pty session in the main process. */
   id: string
   title: string
+  /** `shell`: the profile name; `auto`: taken from the first command; `manual`: set by the user. */
+  titleSource: 'shell' | 'auto' | 'manual'
   color: AgentColor
   cwd: string
   exitCode?: number
@@ -29,9 +32,14 @@ interface TerminalState {
   focus(id: string): void
   focusRelative(offset: number): void
   rename(id: string, title: string): void
+  /** Observes keyboard input to name the terminal after its first command. */
+  trackInput(id: string, data: string): void
   setLayout(layout: TerminalLayout): void
   dismissError(): void
 }
+
+/** Per-terminal input trackers; plain state, never rendered. */
+const autoTitles = new Map<string, AutoTitle>()
 
 export const useTerminals = create<TerminalState>((set, get) => ({
   tabs: [],
@@ -54,6 +62,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
         const tab: TerminalTab = {
           id: info.id,
           title: title ?? info.profile.name,
+          titleSource: title ? 'manual' : 'shell',
           color: colorAt(index),
           cwd: info.cwd,
         }
@@ -66,6 +75,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
 
   close: async (id) => {
     terminalBus.forget(id)
+    autoTitles.delete(id)
     set((state) => {
       const index = state.tabs.findIndex((tab) => tab.id === id)
       const tabs = state.tabs.filter((tab) => tab.id !== id)
@@ -87,8 +97,28 @@ export const useTerminals = create<TerminalState>((set, get) => ({
 
   rename: (id, title) =>
     set((state) => ({
-      tabs: state.tabs.map((tab) => (tab.id === id && title.trim() ? { ...tab, title } : tab)),
+      tabs: state.tabs.map((tab) =>
+        tab.id === id && title.trim() ? { ...tab, title, titleSource: 'manual' } : tab,
+      ),
     })),
+
+  trackInput: (id, data) => {
+    const tab = get().tabs.find((t) => t.id === id)
+    if (!tab || tab.titleSource === 'manual') return
+    let tracker = autoTitles.get(id)
+    if (!tracker) {
+      tracker = new AutoTitle()
+      autoTitles.set(id, tracker)
+    }
+    if (tracker.finished) return
+    const title = tracker.feed(data)
+    if (!title) return
+    set((state) => ({
+      tabs: state.tabs.map((t) =>
+        t.id === id && t.titleSource !== 'manual' ? { ...t, title, titleSource: 'auto' } : t,
+      ),
+    }))
+  },
 
   setLayout: (layout) => set({ layout }),
 

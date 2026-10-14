@@ -17,7 +17,7 @@ interface TerminalPaneProps {
 }
 
 export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
-  const { focus, close, setLayout } = useTerminals()
+  const { focus, close, setLayout, trackInput } = useTerminals()
   const subscribe = useCallback(
     (write: (data: string) => void) => terminalBus.attach(tab.id, write),
     [tab.id],
@@ -54,7 +54,10 @@ export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
       <div className="relative min-h-0 flex-1">
         <XTermView
           subscribe={subscribe}
-          onInput={(data) => api.terminal.write(tab.id, data)}
+          onInput={(data) => {
+            api.terminal.write(tab.id, data)
+            trackInput(tab.id, data)
+          }}
           onResize={(cols, rows) => api.terminal.resize(tab.id, cols, rows)}
           focused={active}
         />
