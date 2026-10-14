@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- App icon on Apple's 824px grid. Symbol: two agent nodes linked to the orchestrator node.
+       Strokes are heavier than in the logotype so the icon stays legible at 16px. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#272727"/>
+      <stop offset="1" stop-color="#161616"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="url(#tile)"/>
+  <rect x="101" y="101" width="822" height="822" rx="183" fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="2"/>
+  <g fill="#ececec" transform="translate(0 -6)">
+    <g stroke="#ececec" stroke-width="40" stroke-linecap="round">
+      <line x1="352" y1="384" x2="512" y2="640"/>
+      <line x1="672" y1="384" x2="512" y2="640"/>
+    </g>
+    <circle cx="352" cy="384" r="62"/>
+    <circle cx="672" cy="384" r="62"/>
+    <circle cx="512" cy="640" r="84"/>
+  </g>
+</svg>
