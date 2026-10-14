@@ -21,6 +21,8 @@ export function useShortcuts(): void {
 
       event.preventDefault()
       event.stopPropagation()
+      // Any other action takes the user somewhere else, so the palette shouldn't linger on top.
+      if (id !== 'palette.toggle') useUi.getState().setPaletteOpen(false)
       actions[id].run()
     }
 
