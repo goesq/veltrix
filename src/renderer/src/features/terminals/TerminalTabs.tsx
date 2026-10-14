@@ -17,11 +17,10 @@ export function TerminalTabs() {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 px-3">
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-        {tabs.map((tab, index) => (
+        {tabs.map((tab) => (
           <Tab
             key={tab.id}
             tab={tab}
-            index={index}
             active={tab.id === activeId}
             onSelect={() => focus(tab.id)}
             onClose={() => void close(tab.id)}
@@ -97,13 +96,12 @@ function NewTerminalButton({
 
 interface TabProps {
   tab: TerminalTab
-  index: number
   active: boolean
   onSelect(): void
   onClose(): void
 }
 
-function Tab({ tab, index, active, onSelect, onClose }: TabProps) {
+function Tab({ tab, active, onSelect, onClose }: TabProps) {
   const rename = useTerminals((s) => s.rename)
   const [editing, setEditing] = useState(false)
 
@@ -122,7 +120,6 @@ function Tab({ tab, index, active, onSelect, onClose }: TabProps) {
       )}
     >
       <StatusDot className={tab.exitCode === undefined ? tagDot[tab.color] : 'bg-faint'} />
-      <span className="font-mono text-[11px] text-faint">{index + 1}</span>
       {editing ? (
         <input
           autoFocus
