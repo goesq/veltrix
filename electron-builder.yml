@@ -1,0 +1,27 @@
+appId: dev.veltrix.app
+productName: Veltrix
+directories:
+  # icon.png here is converted to .ico / .icns for each platform.
+  buildResources: resources
+  output: dist
+files:
+  - out/**
+  - resources/**
+  - package.json
+asarUnpack:
+  - node_modules/node-pty/**
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+# node-pty ships prebuilt N-API binaries that load in Electron as-is; rebuilding would
+# require a C++ toolchain for no benefit.
+npmRebuild: false
