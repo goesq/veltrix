@@ -23,7 +23,9 @@ export function createMainWindow(): BrowserWindow {
     titleBarStyle: 'hidden',
     ...(isMac
       ? { trafficLightPosition: { x: 16, y: 18 } }
-      : { titleBarOverlay: { color: BACKGROUND, symbolColor: '#9b9b9b', height: 48 } }),
+      : // The title bar is 48px including its 1px bottom border; stopping the caption buttons
+        // above it lets the border run all the way to the window edge.
+        { titleBarOverlay: { color: BACKGROUND, symbolColor: '#9b9b9b', height: 47 } }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
