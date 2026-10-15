@@ -11,6 +11,7 @@
     "dev": "electron-vite dev --watch",
     "build": "npm run typecheck && electron-vite build",
     "preview": "electron-vite preview",
+    "postinstall": "node scripts/fix-node-pty.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac"

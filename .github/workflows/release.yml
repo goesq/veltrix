@@ -1,0 +1,103 @@
+# Builds the installers and attaches them to the GitHub release of a tag.
+# Runs when a v* tag is pushed, or by hand (Actions → Release → Run workflow) to attach a
+# build of the chosen branch to an existing tag's release; files already there are replaced.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to build and attach to, for example v0.1.0
+        required: true
+      platform:
+        description: Installers to build
+        type: choice
+        options: [all, macOS, Windows]
+        default: all
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  release:
+    name: Prepare the release
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Create a draft release if missing
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --title "Veltrix ${TAG#v}" --notes ""
+
+      - name: Pick the platforms
+        id: matrix
+        env:
+          PLATFORM: ${{ inputs.platform || 'all' }}
+        run: |
+          mac='{"name":"macOS","os":"macos-latest","script":"dist:mac","files":"dist/*.dmg"}'
+          win='{"name":"Windows","os":"windows-latest","script":"dist:win","files":"dist/*.exe"}'
+          case "$PLATFORM" in
+            macOS) echo "matrix=[$mac]" >> "$GITHUB_OUTPUT" ;;
+            Windows) echo "matrix=[$win]" >> "$GITHUB_OUTPUT" ;;
+            *) echo "matrix=[$mac,$win]" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.release.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    env:
+      # No signing certificate is configured; don't look for one in the keychain.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      # A tag push builds that tag; a manual run builds the branch it was started from.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run ${{ matrix.script }} -- --publish never
+
+      # Nothing is attached unless the built app starts, renders and runs a shell
+      # (see src/main/smokeTest.ts).
+      - name: Test the macOS installers
+        if: matrix.name == 'macOS'
+        run: |
+          for dmg in dist/*.dmg; do
+            echo "::group::$dmg"
+            mount=$(hdiutil attach -nobrowse -readonly "$dmg" | tail -1 | cut -f3)
+            app="$mount/Veltrix.app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            binary="$app/Contents/MacOS/Veltrix"
+            if [[ "$(lipo -archs "$binary")" == x86_64 ]] && ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+              echo "::warning::Rosetta is missing on this runner; $dmg was not launched."
+            else
+              "$binary" --smoke-test
+            fi
+            hdiutil detach "$mount"
+            echo "::endgroup::"
+          done
+
+      - name: Test the Windows build
+        if: matrix.name == 'Windows'
+        shell: bash
+        run: dist/win-unpacked/Veltrix.exe --smoke-test
+
+      - name: Attach the installers
+        shell: bash
+        run: gh release upload "$TAG" ${{ matrix.files }} --repo "$GITHUB_REPOSITORY" --clobber

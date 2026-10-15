@@ -12,6 +12,11 @@ asarUnpack:
   - node_modules/node-pty/**
 mac:
   category: public.app-category.developer-tools
+  # No Developer ID certificate yet: sign ad hoc, which Apple Silicon requires to launch.
+  # The hardened runtime is only needed for notarization, and without entitlements it
+  # would stop Electron's JIT, so it stays off until the app is notarized.
+  identity: '-'
+  hardenedRuntime: false
   target:
     - target: dmg
       arch: [arm64, x64]
@@ -20,6 +25,8 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
+  # No spaces: GitHub renames release assets with spaces, which breaks re-uploads.
+  artifactName: ${productName}-${version}-setup.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
 # node-pty ships prebuilt N-API binaries that load in Electron as-is; rebuilding would

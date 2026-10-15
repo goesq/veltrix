@@ -1,3 +1,5 @@
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeImage } from 'electron'
 import { resolveLocale } from '@shared/i18n'
@@ -10,6 +12,7 @@ import { ClaudeCliPlanner } from './orchestrator/planning/ClaudeCliPlanner'
 import type { Planner } from './orchestrator/planning/Planner'
 import { ProjectRepository } from './projects/ProjectRepository'
 import { SettingsService } from './settings/SettingsService'
+import { runSmokeTest, SMOKE_TEST_FLAG } from './smokeTest'
 import { SessionStore } from './terminal/SessionStore'
 import { ShellLauncher } from './terminal/ShellLauncher'
 import { ShellProfiles } from './terminal/ShellProfiles'
@@ -18,6 +21,7 @@ import { enableDevToolsShortcut, installAppMenu } from './menu'
 import { APP_ICON, createMainWindow } from './window'
 
 let mainWindow: BrowserWindow | null = null
+const smokeTest = process.argv.includes(SMOKE_TEST_FLAG)
 
 /** Sends an event to the renderer, if the window is still alive. */
 function send(channel: string, ...args: unknown[]): void {
@@ -80,6 +84,14 @@ function bootstrap(): void {
     })
   }
   openWindow()
+  if (smokeTest && mainWindow) {
+    void runSmokeTest({
+      window: mainWindow,
+      profiles: shellProfiles,
+      launcher,
+      version: app.getVersion(),
+    }).then((code) => app.exit(code))
+  }
   app.on('activate', () => {
     if (!mainWindow) openWindow()
   })
@@ -91,6 +103,8 @@ function bootstrap(): void {
 }
 
 app.setName('Veltrix')
+// A smoke test runs beside a normal instance, without reading or changing its data.
+if (smokeTest) app.setPath('userData', mkdtempSync(join(tmpdir(), 'veltrix-smoke-')))
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()

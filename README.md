@@ -44,6 +44,15 @@ npm run dist:mac   # .dmg (run on macOS)
 npm run dist:win   # NSIS installer (run on Windows)
 ```
 
+Pushing a `v*` tag runs the Release workflow, which builds both installers on GitHub and
+attaches them to that tag's release. Each build is launched with `--smoke-test` first, which
+checks that the interface loads and the default shell runs in a terminal, and nothing is
+attached if it fails. Run `Veltrix --smoke-test` yourself to check an installed copy.
+
+The macOS build is signed ad hoc, not with a Developer ID, so macOS blocks it the first
+time. After moving Veltrix to Applications, run `xattr -cr /Applications/Veltrix.app`, or
+open it once from **System Settings → Privacy & Security → Open Anyway**.
+
 ## How orchestration works
 
 1. You describe a goal in a project.
