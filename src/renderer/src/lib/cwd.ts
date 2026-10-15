@@ -26,3 +26,15 @@ export function cwdFromOsc7(payload: string): string | undefined {
   const rest = (drive[2] ?? '').replace(/[/\\]+/g, '\\').replace(/\\$/, '')
   return `${drive[1].toUpperCase()}:\\${rest}`
 }
+
+/** A home folder (`C:\Users\x`, `/Users/x`, `/home/x`), shown as `~` like the prompt does. */
+const HOME_PATH = /^(?:[a-zA-Z]:\\Users\\[^\\]+|\/Users\/[^/]+|\/home\/[^/]+|\/root)[/\\]?$/
+
+/** Last segment of a working directory, as the prompt shows it: `veltrix`, `~`, `C:\`. */
+export function folderName(cwd: string): string {
+  if (HOME_PATH.test(cwd)) return '~'
+  const parts = cwd.split(/[/\\]/).filter(Boolean)
+  if (parts.length === 0) return '/'
+  const last = parts[parts.length - 1]
+  return /^[a-zA-Z]:$/.test(last) ? `${last}\\` : last
+}

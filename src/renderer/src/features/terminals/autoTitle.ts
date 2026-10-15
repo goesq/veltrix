@@ -1,6 +1,7 @@
 /**
- * Names a terminal after the first thing the user sends in it: the first command, or, when
- * that command opens an interactive AI agent, the first message sent to the agent.
+ * Names a terminal after the first thing the user sends in it: the first command (`cd`, `ls`
+ * and the like don't count), or, when that command opens an interactive AI agent, the first
+ * message sent to the agent. The store puts the folder in front of it.
  *
  * Input is observed from the keystrokes the terminal forwards to the shell, so line editing
  * is reconstructed heuristically. Lines edited with cursor keys or recalled from history
@@ -8,6 +9,8 @@
  */
 
 const AGENT_CLIS = new Set(['claude', 'codex', 'gemini', 'aider', 'opencode', 'copilot'])
+/** Moving around and looking: the title already shows the folder, so wait for a real command. */
+const NAVIGATION = new Set(['cd', 'z', 'pushd', 'popd', 'ls', 'll', 'dir', 'pwd', 'clear', 'cls'])
 const MAX_TITLE = 32
 /**
  * Sequences on the input stream that aren't line edits: bracketed-paste markers, focus
@@ -78,6 +81,7 @@ export class AutoTitle {
       return name
     }
 
+    if (NAVIGATION.has(name.toLowerCase())) return undefined
     this.stage = { kind: 'done' }
     return shorten(text)
   }

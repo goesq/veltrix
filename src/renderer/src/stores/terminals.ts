@@ -4,6 +4,7 @@ import type { AgentColor, TerminalSession } from '@shared/types'
 import { messages } from '../i18n'
 import { api } from '../lib/api'
 import { colorAt } from '../lib/colors'
+import { folderName } from '../lib/cwd'
 import { terminalBus } from '../lib/terminalBus'
 import { AutoTitle } from '../features/terminals/autoTitle'
 
@@ -12,8 +13,13 @@ export interface TerminalTab {
   id: string
   profileId: string
   title: string
-  /** `shell`: the profile name; `auto`: taken from the first command; `manual`: set by the user. */
+  /**
+   * `shell`: the profile name; `auto`: the folder and the first command (`veltrix · npm run
+   * dev`), following the folder as it changes; `manual`: set by the user.
+   */
   titleSource: 'shell' | 'auto' | 'manual'
+  /** First command typed in the terminal, for the `auto` title. */
+  command?: string
   color: AgentColor
   /** Working directory, kept up to date by the shell integration (OSC 7). */
   cwd: string
@@ -72,6 +78,9 @@ export const workspaceTabs = (tabs: TerminalTab[]): TerminalTab[] =>
 
 /** Workspace terminals shown in the grid layout (not hidden with the eye toggle). */
 export const gridTabs = (tabs: TerminalTab[]): TerminalTab[] => tabs.filter((tab) => !tab.hidden)
+
+/** Title of a terminal named after its first command: `veltrix · npm run dev`. */
+const autoTitle = (cwd: string, command: string): string => `${folderName(cwd)} · ${command}`
 
 /** Per-terminal input trackers; plain state, never rendered. */
 const autoTitles = new Map<string, AutoTitle>()
@@ -206,7 +215,12 @@ export const useTerminals = create<TerminalState>((set, get) => ({
 
   setCwd: (id, cwd) =>
     set((state) => ({
-      tabs: state.tabs.map((tab) => (tab.id === id && tab.cwd !== cwd ? { ...tab, cwd } : tab)),
+      tabs: state.tabs.map((tab) => {
+        if (tab.id !== id || tab.cwd === cwd) return tab
+        const title =
+          tab.titleSource === 'auto' && tab.command ? autoTitle(cwd, tab.command) : tab.title
+        return { ...tab, cwd, title }
+      }),
     })),
 
   trackInput: (id, data) => {
@@ -218,11 +232,13 @@ export const useTerminals = create<TerminalState>((set, get) => ({
       autoTitles.set(id, tracker)
     }
     if (tracker.finished) return
-    const title = tracker.feed(data)
-    if (!title) return
+    const command = tracker.feed(data)
+    if (!command) return
     set((state) => ({
       tabs: state.tabs.map((t) =>
-        t.id === id && t.titleSource !== 'manual' ? { ...t, title, titleSource: 'auto' } : t,
+        t.id === id && t.titleSource !== 'manual'
+          ? { ...t, command, title: autoTitle(t.cwd, command), titleSource: 'auto' }
+          : t,
       ),
     }))
   },
