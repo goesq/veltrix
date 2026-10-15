@@ -11,6 +11,7 @@ export const enUS: Messages = {
     choose: 'Choose…',
     close: 'Close',
     dismiss: 'Dismiss',
+    resize: 'Drag to resize · double-click to reset',
   },
 
   titleBar: {

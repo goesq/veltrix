@@ -12,6 +12,7 @@ export const ptBR = {
     choose: 'Escolher…',
     close: 'Fechar',
     dismiss: 'Dispensar',
+    resize: 'Arraste para redimensionar · clique duplo para restaurar',
   },
 
   titleBar: {
