@@ -20,6 +20,9 @@ mac:
   target:
     - target: dmg
       arch: [arm64, x64]
+dmg:
+  # Name both architectures; the default leaves "x64" out of the Intel build's name.
+  artifactName: ${productName}-${version}-${arch}.${ext}
 win:
   target:
     - target: nsis
