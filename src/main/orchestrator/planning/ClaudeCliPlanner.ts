@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { z } from 'zod/v4'
 import { childEnv } from '../../infra/environment'
+import { loadLoginShellPath } from '../../infra/loginShellPath'
 import { PlanSchema, validatePlan, type Plan, type Planner, type PlanRequest } from './Planner'
 import { buildPlannerPrompt, PLANNER_SYSTEM_PROMPT } from './planPrompt'
 
@@ -23,6 +24,7 @@ ${buildPlannerPrompt(request)}
 Respond with only a JSON object matching this JSON Schema, with no prose and no code fences:
 ${JSON.stringify(z.toJSONSchema(PlanSchema))}`
 
+    await loadLoginShellPath()
     const stdout = await runClaude(['-p', '--output-format', 'json'], prompt, request.project.path)
     const cli = CliResultSchema.parse(JSON.parse(stdout))
     if (cli.is_error) throw new Error(cli.result || 'Claude CLI reported an error.')

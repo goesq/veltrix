@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, nativeImage } from 'electron'
 import { resolveLocale } from '@shared/i18n'
 import { IpcChannel } from '@shared/ipc'
+import { loadLoginShellPath } from './infra/loginShellPath'
 import { registerIpc } from './ipc/registerIpc'
 import { AgentRunner } from './orchestrator/agents/AgentRunner'
 import { Orchestrator } from './orchestrator/Orchestrator'
@@ -29,6 +30,8 @@ function send(channel: string, ...args: unknown[]): void {
 }
 
 function bootstrap(): void {
+  // Started now so the user's PATH is ready by the time the first agent or planner runs.
+  void loadLoginShellPath()
   const dataDir = app.getPath('userData')
   const settings = new SettingsService(join(dataDir, 'settings.json'))
   const projects = new ProjectRepository(join(dataDir, 'projects.json'))

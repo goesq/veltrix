@@ -1,6 +1,7 @@
 import type { Project, Task, TaskOutputEvent } from '@shared/types'
 import { stripAnsi } from '../infra/ansi'
 import { newId } from '../infra/ids'
+import { loadLoginShellPath } from '../infra/loginShellPath'
 import { commandShell } from '../infra/shell'
 import type { ProjectRepository } from '../projects/ProjectRepository'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
@@ -166,6 +167,7 @@ export class Orchestrator {
       const workspace = new ProjectWorkspace(project)
       const command = await this.prepareCommand(project, task, workspace)
       const log = await workspace.openLog(taskId)
+      await loadLoginShellPath()
 
       const run = this.runner.start({
         cwd: project.path,
