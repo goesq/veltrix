@@ -51,6 +51,8 @@ interface TerminalState {
   close(id: string): Promise<void>
   focus(id: string): void
   focusRelative(offset: number): void
+  /** Trades the places of two terminals (grid position and sidebar order). */
+  swap(id: string, otherId: string): void
   rename(id: string, title: string): void
   setCwd(id: string, cwd: string): void
   /** Observes keyboard input to name the terminal after its first command. */
@@ -157,6 +159,16 @@ export const useTerminals = create<TerminalState>((set, get) => ({
     const index = visible.findIndex((tab) => tab.id === get().activeId)
     set({ activeId: visible[(index + offset + visible.length) % visible.length].id })
   },
+
+  swap: (id, otherId) =>
+    set((state) => {
+      const a = state.tabs.findIndex((tab) => tab.id === id)
+      const b = state.tabs.findIndex((tab) => tab.id === otherId)
+      if (a === -1 || b === -1 || a === b) return {}
+      const tabs = [...state.tabs]
+      ;[tabs[a], tabs[b]] = [tabs[b], tabs[a]]
+      return { tabs }
+    }),
 
   rename: (id, title) =>
     set((state) => ({

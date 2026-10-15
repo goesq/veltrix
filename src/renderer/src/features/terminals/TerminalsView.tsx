@@ -1,11 +1,13 @@
-import { useRef, useState, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { SquareTerminal, X } from 'lucide-react'
 import { MAX_TERMINALS } from '@shared/constants'
 import { Button, IconButton } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ResizeHandle } from '../../components/ui/ResizeHandle'
+import { StatusDot } from '../../components/ui/StatusDot'
 import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
+import { tagDot } from '../../lib/colors'
 import { loadSizes, resizePair, saveSizes } from '../../lib/layoutSizes'
 import { useTerminals, workspaceTabs } from '../../stores/terminals'
 import { TerminalPane } from './TerminalPane'
@@ -123,15 +125,71 @@ function useGridSizes(shape: number[]) {
   return { containerRef, sizes, handle }
 }
 
+/** Pixels the pointer must travel before a press on a pane header becomes a drag. */
+const DRAG_THRESHOLD = 5
+
+interface PaneDrag {
+  id: string
+  /** Pane under the pointer that the dragged one would trade places with. */
+  overId: string | null
+  x: number
+  y: number
+}
+
+/**
+ * Dragging a pane by its header onto another pane swaps the two. A plain click (no
+ * movement past the threshold) is left alone, so focusing and the header buttons still work.
+ */
+function usePaneDrag(swap: (id: string, otherId: string) => void) {
+  const [drag, setDrag] = useState<PaneDrag | null>(null)
+
+  const start = (id: string) => (event: PointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return
+    const originX = event.clientX
+    const originY = event.clientY
+    let current: PaneDrag | null = null
+
+    const move = (e: globalThis.PointerEvent): void => {
+      if (!current && Math.hypot(e.clientX - originX, e.clientY - originY) < DRAG_THRESHOLD) return
+      const over = document
+        .elementFromPoint(e.clientX, e.clientY)
+        ?.closest<HTMLElement>('[data-pane-id]')?.dataset.paneId
+      current = {
+        id,
+        overId: over && over !== id ? over : null,
+        x: e.clientX,
+        y: e.clientY,
+      }
+      document.body.style.cursor = 'grabbing'
+      setDrag(current)
+    }
+    const end = (e: globalThis.PointerEvent): void => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      document.body.style.cursor = ''
+      if (current?.overId && e.type === 'pointerup') swap(current.id, current.overId)
+      setDrag(null)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
+  return { drag, start }
+}
+
 /** The terminals listed in the sidebar, one at a time or all in a grid. */
 export function TerminalsView() {
-  const { tabs: allTabs, activeId, layout, open, error, dismissError } = useTerminals()
+  const { tabs: allTabs, activeId, layout, open, swap, error, dismissError } = useTerminals()
   const tabs = workspaceTabs(allTabs)
   const t = useT()
   const grid = layout === 'grid' && tabs.length > 1
   const shape = grid ? rowShape(tabs.length) : [1]
   const { containerRef, sizes, handle } = useGridSizes(shape)
   const columns = gridColumns(tabs.length)
+  const paneDrag = usePaneDrag(swap)
+  const dragged = tabs.find((tab) => tab.id === paneDrag.drag?.id)
 
   /** Absolute placement of pane `index` in the grid layout. */
   const placement = (index: number): CSSProperties => {
@@ -176,14 +234,24 @@ export function TerminalsView() {
           {tabs.map((tab, index) => (
             <div
               key={tab.id}
+              data-pane-id={tab.id}
               className={cn(
                 'min-h-0 min-w-0',
                 grid && 'absolute',
                 !grid && tab.id !== activeId && 'hidden',
+                dragged?.id === tab.id && 'opacity-40',
               )}
               style={grid ? placement(index) : undefined}
             >
-              <TerminalPane tab={tab} active={tab.id === activeId} showHeader={grid} />
+              <TerminalPane
+                tab={tab}
+                active={tab.id === activeId}
+                showHeader={grid}
+                onHeaderPointerDown={grid ? paneDrag.start(tab.id) : undefined}
+              />
+              {paneDrag.drag?.overId === tab.id && (
+                <div className="pointer-events-none absolute inset-0 rounded-lg border border-muted bg-fg/5" />
+              )}
             </div>
           ))}
           {grid &&
@@ -215,6 +283,17 @@ export function TerminalsView() {
                 }}
               />
             ))}
+        </div>
+      )}
+
+      {/* Follows the pointer while a pane is dragged. */}
+      {dragged && paneDrag.drag && (
+        <div
+          className="pointer-events-none fixed z-50 flex items-center gap-2 rounded-md border border-line-strong bg-raised px-2.5 py-1 shadow-lg"
+          style={{ left: paneDrag.drag.x + 12, top: paneDrag.drag.y + 12 }}
+        >
+          <StatusDot className={tagDot[dragged.color]} />
+          <span className="max-w-60 truncate">{dragged.title}</span>
         </div>
       )}
     </div>

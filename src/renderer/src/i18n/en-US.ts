@@ -42,6 +42,7 @@ export const enUS: Messages = {
     emptyDescription: (max) =>
       `Open up to ${max} terminals and switch between them from the sidebar or with shortcuts.`,
     maximize: 'Maximize',
+    dragToReorder: 'Drag to change places with another terminal',
     exited: (code) => `Process exited (code ${code})`,
   },
 

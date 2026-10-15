@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, type PointerEvent } from 'react'
 import { Maximize2, X } from 'lucide-react'
 import { IconButton } from '../../components/ui/Button'
 import { StatusDot } from '../../components/ui/StatusDot'
@@ -15,9 +15,11 @@ interface TerminalPaneProps {
   active: boolean
   /** Show the pane header (grid layout). */
   showHeader: boolean
+  /** Pressing the header starts dragging the pane to another place (grid layout). */
+  onHeaderPointerDown?(event: PointerEvent<HTMLElement>): void
 }
 
-export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
+export function TerminalPane({ tab, active, showHeader, onHeaderPointerDown }: TerminalPaneProps) {
   const { focus, close, setLayout, trackInput, setCwd } = useTerminals()
   const t = useT()
   const subscribe = useCallback(
@@ -34,7 +36,14 @@ export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
       )}
     >
       {showHeader && (
-        <header className="flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5">
+        <header
+          onPointerDown={onHeaderPointerDown}
+          title={onHeaderPointerDown ? t.terminals.dragToReorder : undefined}
+          className={cn(
+            'flex h-9 shrink-0 items-center gap-2 border-b border-line pl-3 pr-1.5',
+            onHeaderPointerDown && 'cursor-grab',
+          )}
+        >
           <StatusDot className={tagDot[tab.color]} />
           <span className={cn('truncate', active ? 'text-fg' : 'text-muted')}>{tab.title}</span>
           <div className="ml-auto flex items-center">

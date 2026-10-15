@@ -43,6 +43,7 @@ export const ptBR = {
     emptyDescription: (max: number) =>
       `Abra até ${max} terminais e alterne entre eles pela barra lateral ou pelos atalhos.`,
     maximize: 'Maximizar',
+    dragToReorder: 'Arraste para trocar de lugar com outro terminal',
     exited: (code: number) => `Processo encerrado (código ${code})`,
   },
 
