@@ -5,6 +5,7 @@ import '@fontsource-variable/jetbrains-mono'
 import '@xterm/xterm/css/xterm.css'
 import './styles.css'
 import { App } from './App'
+import { isMac } from './lib/api'
 import { useShellProfiles } from './stores/shellProfiles'
 import { persistTerminalSession, useTerminals } from './stores/terminals'
 
@@ -12,10 +13,12 @@ import { persistTerminalSession, useTerminals } from './stores/terminals'
 void useTerminals.getState().restore().then(persistTerminalSession)
 void useShellProfiles.getState().load()
 
+document.documentElement.dataset.platform = isMac ? 'mac' : 'other'
+
 // xterm measures the character cell when a terminal is created, so the fonts must be ready
 // before the first render (they ship with the app, so this takes milliseconds).
 void Promise.all([
-  document.fonts.load('13px "Inter Variable"'),
+  isMac ? undefined : document.fonts.load('13px "Inter Variable"'),
   document.fonts.load('13px "JetBrains Mono Variable"'),
 ]).finally(() =>
   createRoot(document.getElementById('root')!).render(

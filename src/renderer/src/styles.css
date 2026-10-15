@@ -28,6 +28,11 @@
   --font-mono: 'JetBrains Mono Variable', ui-monospace, Menlo, Consolas, monospace;
 }
 
+/* macOS: the system font (SF Pro), which picks its optical size and tracking by itself. */
+:root[data-platform='mac'] {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+}
+
 @layer base {
   html,
   body,
