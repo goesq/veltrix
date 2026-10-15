@@ -20,6 +20,9 @@ interface XTermViewProps {
   focused?: boolean
 }
 
+/** Milliseconds a new terminal size must hold before the PTY is resized. */
+const PTY_RESIZE_DELAY = 60
+
 /** xterm.js wrapper that keeps itself sized to its container. */
 export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTermViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -56,7 +59,13 @@ export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTer
       if (cwd) callbacks.current.onCwd?.(cwd)
       return true
     })
-    const resize = terminal.onResize(({ cols, rows }) => callbacks.current.onResize?.(cols, rows))
+    // xterm reflows at once; the shell hears about it once the size settles. Resizing the
+    // PTY on every frame of a divider drag makes shells (ConPTY especially) redraw over and over.
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined
+    const resize = terminal.onResize(({ cols, rows }) => {
+      clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => callbacks.current.onResize?.(cols, rows), PTY_RESIZE_DELAY)
+    })
     const unsubscribe = subscribe((data) => terminal.write(data))
 
     const refit = (): void => {
@@ -71,6 +80,7 @@ export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTer
     fitRef.current = fit
     return () => {
       observer.disconnect()
+      clearTimeout(resizeTimer)
       unsubscribe()
       input.dispose()
       cwdReports.dispose()
