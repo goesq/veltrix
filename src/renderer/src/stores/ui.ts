@@ -10,24 +10,22 @@ interface UiState {
   recordingShortcut: boolean
   /** Icon-only sidebar. */
   sidebarCollapsed: boolean
-  /** Whether the open terminals are listed under "Terminais" in the sidebar. */
-  terminalListExpanded: boolean
   navigate(view: View): void
   openProject(projectId: string): void
+  /** The projects overview, with no project selected. */
+  showProjects(): void
   setPaletteOpen(open: boolean): void
   setRecordingShortcut(recording: boolean): void
   toggleSidebar(): void
-  toggleTerminalList(): void
 }
 
 /** Layout preferences remembered on this machine (view state, not settings). */
 interface UiPreferences {
   sidebarCollapsed: boolean
-  terminalListExpanded: boolean
 }
 
 const PREFERENCES_KEY = 'veltrix.ui'
-const defaults: UiPreferences = { sidebarCollapsed: false, terminalListExpanded: true }
+const defaults: UiPreferences = { sidebarCollapsed: false }
 
 function loadPreferences(): UiPreferences {
   try {
@@ -45,17 +43,17 @@ export const useUi = create<UiState>((set) => ({
   ...loadPreferences(),
   navigate: (view) => set({ view }),
   openProject: (projectId) => set({ view: 'projects', selectedProjectId: projectId }),
+  showProjects: () => set({ view: 'projects', selectedProjectId: null }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setRecordingShortcut: (recordingShortcut) => set({ recordingShortcut }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-  toggleTerminalList: () => set((s) => ({ terminalListExpanded: !s.terminalListExpanded })),
 }))
 
-useUi.subscribe(({ sidebarCollapsed, terminalListExpanded }) => {
+useUi.subscribe(({ sidebarCollapsed }) => {
   try {
     localStorage.setItem(
       PREFERENCES_KEY,
-      JSON.stringify({ sidebarCollapsed, terminalListExpanded } satisfies UiPreferences),
+      JSON.stringify({ sidebarCollapsed } satisfies UiPreferences),
     )
   } catch {
     // Storage unavailable: preferences just won't persist.
