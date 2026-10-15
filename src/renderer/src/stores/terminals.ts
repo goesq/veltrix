@@ -20,6 +20,8 @@ export interface TerminalTab {
   /** Set for a project's own terminal, shown in the project view instead of the terminal list. */
   projectId?: string
   exitCode?: number
+  /** Left out of the grid layout (eye toggle); still open and listed in the sidebar. */
+  hidden?: boolean
 }
 
 export type TerminalLayout = 'single' | 'grid'
@@ -31,6 +33,7 @@ interface OpenOptions {
   projectId?: string
   /** Defaults to true; restored terminals don't steal focus from the one that was active. */
   activate?: boolean
+  hidden?: boolean
 }
 
 interface TerminalState {
@@ -51,6 +54,8 @@ interface TerminalState {
   close(id: string): Promise<void>
   focus(id: string): void
   focusRelative(offset: number): void
+  /** Shows or hides a terminal in the grid layout. The last one shown can't be hidden. */
+  setHidden(id: string, hidden: boolean): void
   /** Trades the places of two terminals (grid position and sidebar order). */
   swap(id: string, otherId: string): void
   rename(id: string, title: string): void
@@ -65,6 +70,9 @@ interface TerminalState {
 export const workspaceTabs = (tabs: TerminalTab[]): TerminalTab[] =>
   tabs.filter((tab) => !tab.projectId)
 
+/** Workspace terminals shown in the grid layout (not hidden with the eye toggle). */
+export const gridTabs = (tabs: TerminalTab[]): TerminalTab[] => tabs.filter((tab) => !tab.hidden)
+
 /** Per-terminal input trackers; plain state, never rendered. */
 const autoTitles = new Map<string, AutoTitle>()
 
@@ -77,7 +85,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
 
   canOpen: () => get().tabs.length < MAX_TERMINALS,
 
-  open: async ({ cwd, title, profileId, projectId, activate = true } = {}) => {
+  open: async ({ cwd, title, profileId, projectId, activate = true, hidden } = {}) => {
     if (!get().canOpen()) {
       set({ error: messages().terminals.limitReached(MAX_TERMINALS) })
       return undefined
@@ -92,6 +100,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
         color: colorAt(get().created),
         cwd: info.cwd,
         projectId,
+        hidden: hidden || undefined,
       }
       set((state) => ({
         tabs: [...state.tabs, tab],
@@ -124,6 +133,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
           profileId: saved.profileId,
           cwd: saved.cwd,
           title: saved.title,
+          hidden: saved.hidden,
           activate: false,
         }),
       )
@@ -155,10 +165,27 @@ export const useTerminals = create<TerminalState>((set, get) => ({
 
   focusRelative: (offset) => {
     const visible = workspaceTabs(get().tabs)
-    if (visible.length === 0) return
-    const index = visible.findIndex((tab) => tab.id === get().activeId)
-    set({ activeId: visible[(index + offset + visible.length) % visible.length].id })
+    // In the grid, cycle through the terminals on screen only.
+    const cycle = get().layout === 'grid' ? gridTabs(visible) : visible
+    if (cycle.length === 0) return
+    const index = cycle.findIndex((tab) => tab.id === get().activeId)
+    set({ activeId: cycle[(index + offset + cycle.length) % cycle.length].id })
   },
+
+  setHidden: (id, hidden) =>
+    set((state) => {
+      const shown = gridTabs(workspaceTabs(state.tabs))
+      if (hidden && shown.length <= 1 && shown[0]?.id === id) return {}
+      const tabs = state.tabs.map((tab) =>
+        tab.id === id ? { ...tab, hidden: hidden || undefined } : tab,
+      )
+      // Keep the focus on something that is still on screen.
+      const activeId =
+        hidden && state.activeId === id
+          ? (gridTabs(workspaceTabs(tabs))[0]?.id ?? state.activeId)
+          : state.activeId
+      return { tabs, activeId }
+    }),
 
   swap: (id, otherId) =>
     set((state) => {
@@ -220,6 +247,7 @@ function snapshot({ tabs, activeId, layout }: TerminalState): TerminalSession {
       profileId: tab.profileId,
       cwd: tab.cwd,
       title: tab.titleSource === 'manual' ? tab.title : undefined,
+      hidden: tab.hidden,
     })),
     activeIndex: Math.max(
       0,

@@ -1,5 +1,5 @@
 import { useCallback, type PointerEvent } from 'react'
-import { Maximize2, X } from 'lucide-react'
+import { EyeOff, Maximize2, X } from 'lucide-react'
 import { IconButton } from '../../components/ui/Button'
 import { StatusDot } from '../../components/ui/StatusDot'
 import { useT } from '../../i18n'
@@ -17,9 +17,17 @@ interface TerminalPaneProps {
   showHeader: boolean
   /** Pressing the header starts dragging the pane to another place (grid layout). */
   onHeaderPointerDown?(event: PointerEvent<HTMLElement>): void
+  /** Grid layout: takes the pane off the screen (the terminal keeps running). */
+  onHide?(): void
 }
 
-export function TerminalPane({ tab, active, showHeader, onHeaderPointerDown }: TerminalPaneProps) {
+export function TerminalPane({
+  tab,
+  active,
+  showHeader,
+  onHeaderPointerDown,
+  onHide,
+}: TerminalPaneProps) {
   const { focus, close, setLayout, trackInput, setCwd } = useTerminals()
   const t = useT()
   const subscribe = useCallback(
@@ -47,6 +55,11 @@ export function TerminalPane({ tab, active, showHeader, onHeaderPointerDown }: T
           <StatusDot className={tagDot[tab.color]} />
           <span className={cn('truncate', active ? 'text-fg' : 'text-muted')}>{tab.title}</span>
           <div className="ml-auto flex items-center">
+            {onHide && (
+              <IconButton label={t.terminals.hideFromGrid} onClick={onHide}>
+                <EyeOff size={13} />
+              </IconButton>
+            )}
             <IconButton
               label={t.terminals.maximize}
               onClick={() => {

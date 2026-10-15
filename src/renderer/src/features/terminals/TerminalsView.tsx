@@ -16,7 +16,7 @@ import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
 import { tagDot } from '../../lib/colors'
 import { loadSizes, resizePair, saveSizes } from '../../lib/layoutSizes'
-import { useTerminals, workspaceTabs } from '../../stores/terminals'
+import { gridTabs, useTerminals, workspaceTabs } from '../../stores/terminals'
 import { TerminalPane } from './TerminalPane'
 
 /** Columns used by the grid layout for a given number of terminals (max 10). */
@@ -254,16 +254,28 @@ function usePaneMotion(
 
 /** The terminals listed in the sidebar, one at a time or all in a grid. */
 export function TerminalsView() {
-  const { tabs: allTabs, activeId, layout, open, swap, error, dismissError } = useTerminals()
+  const {
+    tabs: allTabs,
+    activeId,
+    layout,
+    open,
+    swap,
+    setHidden,
+    error,
+    dismissError,
+  } = useTerminals()
   const tabs = workspaceTabs(allTabs)
   const t = useT()
   const grid = layout === 'grid' && tabs.length > 1
-  const shape = grid ? rowShape(tabs.length) : [1]
+  // Terminals hidden with the eye stay mounted (and running) but get no place in the grid.
+  const hiddenOnly = gridTabs(tabs).length === 0
+  const shown = hiddenOnly ? tabs : gridTabs(tabs)
+  const shape = grid ? rowShape(shown.length) : [1]
   const { containerRef, sizes, handle } = useGridSizes(shape)
-  const columns = gridColumns(tabs.length)
+  const columns = gridColumns(shown.length)
   const paneDrag = usePaneDrag(swap)
   const dragged = tabs.find((tab) => tab.id === paneDrag.drag?.id)
-  usePaneMotion(containerRef, tabs.map((tab) => tab.id).join(), grid)
+  usePaneMotion(containerRef, shown.map((tab) => tab.id).join(), grid)
 
   /** Absolute placement of pane `index` in the grid layout. */
   const placement = (index: number): CSSProperties => {
@@ -305,35 +317,40 @@ export function TerminalsView() {
         >
           {/* All panes stay mounted (same element in both layouts) so shells keep their screen
               state; single mode hides the rest, the grid places each pane absolutely. */}
-          {tabs.map((tab, index) => (
-            <div
-              key={tab.id}
-              data-pane-id={tab.id}
-              className={cn(
-                'min-h-0 min-w-0',
-                grid && 'absolute',
-                !grid && tab.id !== activeId && 'hidden',
-                'transition-[opacity,scale] duration-200 ease-out',
-                dragged?.id === tab.id && 'scale-[0.97] opacity-40',
-              )}
-              style={grid ? placement(index) : undefined}
-            >
-              <TerminalPane
-                tab={tab}
-                active={tab.id === activeId}
-                showHeader={grid}
-                onHeaderPointerDown={grid ? paneDrag.start(tab.id) : undefined}
-              />
-              {grid && (
-                <div
-                  className={cn(
-                    'pointer-events-none absolute inset-0 rounded-lg border border-muted bg-fg/5 transition-opacity duration-150',
-                    paneDrag.drag?.overId === tab.id ? 'opacity-100' : 'opacity-0',
-                  )}
+          {tabs.map((tab) => {
+            const index = shown.indexOf(tab)
+            const onScreen = grid ? index !== -1 : tab.id === activeId
+            return (
+              <div
+                key={tab.id}
+                data-pane-id={tab.id}
+                className={cn(
+                  'min-h-0 min-w-0',
+                  grid && 'absolute',
+                  !onScreen && 'hidden',
+                  'transition-[opacity,scale] duration-200 ease-out',
+                  dragged?.id === tab.id && 'scale-[0.97] opacity-40',
+                )}
+                style={grid && onScreen ? placement(index) : undefined}
+              >
+                <TerminalPane
+                  tab={tab}
+                  active={tab.id === activeId}
+                  showHeader={grid}
+                  onHeaderPointerDown={grid ? paneDrag.start(tab.id) : undefined}
+                  onHide={grid && shown.length > 1 ? () => setHidden(tab.id, true) : undefined}
                 />
-              )}
-            </div>
-          ))}
+                {grid && (
+                  <div
+                    className={cn(
+                      'pointer-events-none absolute inset-0 rounded-lg border border-muted bg-fg/5 transition-opacity duration-150',
+                      paneDrag.drag?.overId === tab.id ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                )}
+              </div>
+            )
+          })}
           {grid &&
             sizes.rows.map((_, row) => {
               const y = track(sizes.rows, row)

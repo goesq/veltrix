@@ -1,12 +1,21 @@
 import { useRef, useState } from 'react'
-import { ChevronDown, Columns2, MoreHorizontal, Plus, Square, SquareTerminal } from 'lucide-react'
+import {
+  ChevronDown,
+  Columns2,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Plus,
+  Square,
+  SquareTerminal,
+} from 'lucide-react'
 import { MAX_TERMINALS } from '@shared/constants'
 import { useT, withShortcut } from '../../i18n'
 import { useShortcutLabel } from '../../keybindings/bindings'
 import { cn } from '../../lib/cn'
 import { tagDot } from '../../lib/colors'
 import { useShellProfiles } from '../../stores/shellProfiles'
-import { useTerminals, workspaceTabs, type TerminalTab } from '../../stores/terminals'
+import { gridTabs, useTerminals, workspaceTabs, type TerminalTab } from '../../stores/terminals'
 import { useUi } from '../../stores/ui'
 import { IconButton } from '../ui/Button'
 import { Menu } from '../ui/Menu'
@@ -15,17 +24,22 @@ import { SidebarSection } from './SidebarSection'
 
 /** "Terminais" section: every open terminal, with new-terminal and layout buttons in the heading. */
 export function SidebarTerminals({ collapsed }: { collapsed: boolean }) {
-  const { tabs, activeId, layout, focus, open, setLayout } = useTerminals()
+  const { tabs, activeId, layout, focus, open, setLayout, setHidden } = useTerminals()
   const { view, navigate } = useUi()
   const newShortcut = useShortcutLabel('terminal.new')
   const t = useT()
   const visible = workspaceTabs(tabs)
   const full = tabs.length >= MAX_TERMINALS
+  // The eye only matters when several terminals share the screen.
+  const grid = layout === 'grid' && visible.length > 1
+  const lastShown = gridTabs(visible).length <= 1
   const newLabel = full
     ? t.terminals.limit(MAX_TERMINALS)
     : withShortcut(t.terminals.newTerminal, newShortcut)
 
   const show = (id: string): void => {
+    // Picking a hidden terminal while in the grid brings it back on screen.
+    if (grid) setHidden(id, false)
     focus(id)
     navigate('terminals')
   }
@@ -88,7 +102,17 @@ export function SidebarTerminals({ collapsed }: { collapsed: boolean }) {
             <StatusDot className={tab.exitCode === undefined ? tagDot[tab.color] : 'bg-faint'} />
           </button>
         ) : (
-          <TerminalItem key={tab.id} tab={tab} selected={selected} onSelect={() => show(tab.id)} />
+          <TerminalItem
+            key={tab.id}
+            tab={tab}
+            selected={selected}
+            onSelect={() => show(tab.id)}
+            eye={
+              grid
+                ? { canHide: !lastShown, toggle: () => setHidden(tab.id, !tab.hidden) }
+                : undefined
+            }
+          />
         )
       })}
       {collapsed
@@ -105,10 +129,13 @@ function TerminalItem({
   tab,
   selected,
   onSelect,
+  eye,
 }: {
   tab: TerminalTab
   selected: boolean
   onSelect(): void
+  /** Grid layout: hide or show this terminal. */
+  eye?: { canHide: boolean; toggle(): void }
 }) {
   const { rename, close } = useTerminals()
   const t = useT()
@@ -119,9 +146,11 @@ function TerminalItem({
     <div
       ref={rowRef}
       className={cn(
-        // Right padding keeps the title clear of the ⋯ button that appears on hover.
-        'group relative flex h-10 items-center gap-3 rounded-md pl-3 pr-9 text-sm transition-colors',
+        // Right padding keeps the title clear of the buttons that appear on hover.
+        'group relative flex h-10 items-center gap-3 rounded-md pl-3 text-sm transition-colors',
+        eye ? 'pr-16' : 'pr-9',
         selected ? 'bg-raised text-fg' : 'text-muted hover:bg-raised/60 hover:text-fg',
+        eye && tab.hidden && 'opacity-50 hover:opacity-100',
       )}
     >
       <StatusDot
@@ -151,6 +180,20 @@ function TerminalItem({
           className="min-w-0 flex-1 truncate text-left after:absolute after:inset-0"
         >
           {tab.title}
+        </button>
+      )}
+      {!editing && eye && (eye.canHide || tab.hidden) && (
+        <button
+          type="button"
+          title={tab.hidden ? t.terminals.showInGrid : t.terminals.hideFromGrid}
+          aria-label={tab.hidden ? t.terminals.showInGrid : t.terminals.hideFromGrid}
+          onClick={eye.toggle}
+          className={cn(
+            'absolute right-8 top-1.5 z-10 inline-flex size-7 items-center justify-center text-muted transition-[color,opacity] hover:text-fg',
+            tab.hidden ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+          )}
+        >
+          {tab.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
       )}
       {!editing && (

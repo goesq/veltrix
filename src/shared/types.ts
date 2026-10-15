@@ -39,6 +39,8 @@ export interface SavedTerminal {
   cwd: string
   /** Only set when the user renamed the terminal. */
   title?: string
+  /** Left out of the grid layout. */
+  hidden?: boolean
 }
 
 export interface TerminalSession {

@@ -32,6 +32,8 @@ export const ptBR = {
     limitReached: (max: number) => `Limite de ${max} terminais atingido.`,
     showOne: 'Mostrar um terminal',
     showGrid: 'Mostrar todos em grade',
+    hideFromGrid: 'Ocultar da grade',
+    showInGrid: 'Mostrar na grade',
     none: 'Nenhum terminal.',
     renameHint: 'Clique duas vezes para renomear',
     rename: 'Renomear',

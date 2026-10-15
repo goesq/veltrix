@@ -31,6 +31,8 @@ export const enUS: Messages = {
     limitReached: (max) => `You can have at most ${max} terminals open.`,
     showOne: 'Show one terminal',
     showGrid: 'Show all in a grid',
+    hideFromGrid: 'Hide from the grid',
+    showInGrid: 'Show in the grid',
     none: 'No terminals.',
     renameHint: 'Double-click to rename',
     rename: 'Rename',
