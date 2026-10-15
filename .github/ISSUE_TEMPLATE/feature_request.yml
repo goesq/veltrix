@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an idea, or propose a new agent preset.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Please search the existing issues first.
+        Proposing a new agent preset? See [what a preset needs](https://github.com/goesq/veltrix/blob/main/CONTRIBUTING.md#proposing-a-new-agent-preset).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How you'd like Veltrix to handle it. For an agent preset, include the headless command with `{prompt}` and the flag that limits it to editing the project.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Workarounds or other approaches you've considered.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to open a pull request for this.

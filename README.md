@@ -9,7 +9,8 @@ A clean, multi-tab terminal with built-in AI agent orchestration, for macOS and 
 - **Terminals**: up to 10 terminals listed in a collapsible sidebar, shown one at a time or
   all together in a grid. Pick the shell per terminal (Windows PowerShell by default, Command
   Prompt, PowerShell 7, Git Bash, WSL distros; zsh, bash, fish on macOS). Terminals are named
-  after their first command and reopen in the folder they were in.
+  after their first command and reopen in the folder they were in; new ones start in the
+  folder set in **Settings → Terminal** (your home folder by default).
 - **Projects**: point Veltrix at a folder, connect AI coding agents (Claude Code, Codex CLI,
   Gemini CLI or any headless CLI), and send goals to an **orchestrator**. The orchestrator
   splits each goal into tasks, routes them to the right agent, runs independent tasks in
@@ -86,6 +87,29 @@ configuration first: PowerShell wraps your existing `prompt`, cmd sets `PROMPT`,
 init file and zsh a `ZDOTDIR` that sources your dotfiles. Fish, nushell and WSL shells work
 normally but don't report their folder yet.
 
+## Prompt and banner
+
+The same snippet gives PowerShell, bash and zsh a compact prompt, `➜ folder git:(branch)`,
+with the arrow turning red when the last command failed. The branch is read from `.git/HEAD`,
+so the prompt never starts a git process. Each new terminal also opens with a "veltrix"
+banner showing the shell, folder and branch; it moves the details below the wordmark, or
+drops the wordmark, when the terminal is narrow. Both can be turned off in
+**Settings → Terminal** to keep your own prompt (oh-my-posh, starship and the like). cmd gets
+a colored prompt with the full path, and no banner.
+
+The banner also redraws itself after `clear` (and Ctrl+L in bash and zsh), with the current
+folder and branch.
+
+## Languages
+
+The interface is available in English (United States), the default, and Portuguese (Brazil).
+Switch in **Settings → General**, where "Automatic" follows the system language instead. The
+terminal banner follows the same choice.
+
+Translations live in `src/renderer/src/i18n/`, one file per language. `pt-BR.ts` defines the
+keys, and TypeScript fails the build if another language misses one. To add a language, see
+[Adding a language](CONTRIBUTING.md#adding-a-language).
+
 ## Architecture
 
 ```
@@ -99,11 +123,18 @@ src/
     settings/       Settings; the API key is encrypted with the OS keychain
     ipc/            Thin translation layer between IPC and the services
   preload/    Typed, minimal bridge exposed as window.veltrix
-  renderer/   React UI (features/, components/, stores/)
+  renderer/   React UI (features/, components/, stores/, i18n/)
 ```
 
 The renderer runs sandboxed with context isolation and no Node access; everything goes through
 the typed bridge defined in `src/shared/ipc.ts`.
+
+## Contributing
+
+Bug reports, fixes, translations and new agent presets are welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style and what a pull request needs, and
+[SECURITY.md](SECURITY.md) to report a vulnerability privately. Everyone taking part follows
+the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

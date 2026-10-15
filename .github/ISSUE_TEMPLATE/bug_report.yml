@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in Veltrix doesn't work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please search the existing issues first.
+        For security issues, don't open an issue: follow [SECURITY.md](https://github.com/goesq/veltrix/blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a new terminal with Git Bash
+        2. Run `...`
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Veltrix version
+      description: Shown in the terminal banner, or the commit if you run from source.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: Windows 11 24H2, macOS 15.4
+  - type: input
+    id: shell
+    attributes:
+      label: Shell or agent
+      description: For terminal issues, the shell. For orchestration issues, the agent CLI and its version.
+      placeholder: PowerShell 7.5, Claude Code 2.1
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: |
+        Errors, screenshots, or the relevant part of `.veltrix/logs/` for agent runs.
+        Remove anything private (API keys, tokens, personal paths) before posting.
+      render: text
