@@ -1,4 +1,11 @@
-import { useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type RefObject,
+} from 'react'
 import { SquareTerminal, X } from 'lucide-react'
 import { MAX_TERMINALS } from '@shared/constants'
 import { Button, IconButton } from '../../components/ui/Button'
@@ -154,12 +161,7 @@ function usePaneDrag(swap: (id: string, otherId: string) => void) {
       const over = document
         .elementFromPoint(e.clientX, e.clientY)
         ?.closest<HTMLElement>('[data-pane-id]')?.dataset.paneId
-      current = {
-        id,
-        overId: over && over !== id ? over : null,
-        x: e.clientX,
-        y: e.clientY,
-      }
+      current = { id, overId: over && over !== id ? over : null, x: e.clientX, y: e.clientY }
       document.body.style.cursor = 'grabbing'
       setDrag(current)
     }
@@ -179,6 +181,77 @@ function usePaneDrag(swap: (id: string, otherId: string) => void) {
   return { drag, start }
 }
 
+/** Duration and easing of panes gliding to a new place. */
+const MOVE_ANIMATION: KeyframeAnimationOptions = {
+  duration: 280,
+  easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+}
+
+/**
+ * Animates panes to their new place when the terminal order or count changes (a swap,
+ * opening or closing one): each pane is drawn at its old spot and size, then glides to the
+ * new one (FLIP). Only a transform runs, so the xterm refits once, not on every frame.
+ * Size-only changes (dragging a divider) are left alone so resizing tracks the pointer.
+ */
+function usePaneMotion(
+  container: RefObject<HTMLDivElement | null>,
+  order: string,
+  enabled: boolean,
+) {
+  const rects = useRef(new Map<string, DOMRect>())
+  const lastOrder = useRef(order)
+
+  useLayoutEffect(() => {
+    const panes = container.current?.querySelectorAll<HTMLElement>('[data-pane-id]') ?? []
+    const previous = rects.current
+    const changed = lastOrder.current !== order
+    const animate =
+      enabled && changed && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    lastOrder.current = order
+    rects.current = new Map()
+
+    for (const pane of panes) {
+      const id = pane.dataset.paneId!
+      const rect = pane.getBoundingClientRect()
+      rects.current.set(id, rect)
+      if (!animate || rect.width === 0) continue
+      const before = previous.get(id)
+      if (!before || before.width === 0) {
+        // A new pane grows in where it lands.
+        pane.animate(
+          [
+            { opacity: 0, transform: 'scale(0.96)' },
+            { opacity: 1, transform: 'none' },
+          ],
+          MOVE_ANIMATION,
+        )
+        continue
+      }
+      const dx = before.left - rect.left
+      const dy = before.top - rect.top
+      const sx = before.width / rect.width
+      const sy = before.height / rect.height
+      if (
+        Math.abs(dx) < 1 &&
+        Math.abs(dy) < 1 &&
+        Math.abs(sx - 1) < 0.01 &&
+        Math.abs(sy - 1) < 0.01
+      )
+        continue
+      pane.animate(
+        [
+          {
+            transformOrigin: 'top left',
+            transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
+          },
+          { transformOrigin: 'top left', transform: 'none' },
+        ],
+        MOVE_ANIMATION,
+      )
+    }
+  })
+}
+
 /** The terminals listed in the sidebar, one at a time or all in a grid. */
 export function TerminalsView() {
   const { tabs: allTabs, activeId, layout, open, swap, error, dismissError } = useTerminals()
@@ -190,6 +263,7 @@ export function TerminalsView() {
   const columns = gridColumns(tabs.length)
   const paneDrag = usePaneDrag(swap)
   const dragged = tabs.find((tab) => tab.id === paneDrag.drag?.id)
+  usePaneMotion(containerRef, tabs.map((tab) => tab.id).join(), grid)
 
   /** Absolute placement of pane `index` in the grid layout. */
   const placement = (index: number): CSSProperties => {
@@ -239,7 +313,8 @@ export function TerminalsView() {
                 'min-h-0 min-w-0',
                 grid && 'absolute',
                 !grid && tab.id !== activeId && 'hidden',
-                dragged?.id === tab.id && 'opacity-40',
+                'transition-[opacity,scale] duration-200 ease-out',
+                dragged?.id === tab.id && 'scale-[0.97] opacity-40',
               )}
               style={grid ? placement(index) : undefined}
             >
@@ -249,8 +324,13 @@ export function TerminalsView() {
                 showHeader={grid}
                 onHeaderPointerDown={grid ? paneDrag.start(tab.id) : undefined}
               />
-              {paneDrag.drag?.overId === tab.id && (
-                <div className="pointer-events-none absolute inset-0 rounded-lg border border-muted bg-fg/5" />
+              {grid && (
+                <div
+                  className={cn(
+                    'pointer-events-none absolute inset-0 rounded-lg border border-muted bg-fg/5 transition-opacity duration-150',
+                    paneDrag.drag?.overId === tab.id ? 'opacity-100' : 'opacity-0',
+                  )}
+                />
               )}
             </div>
           ))}
@@ -271,25 +351,23 @@ export function TerminalsView() {
               ))
             })}
           {grid &&
-            sizes.rows.slice(0, -1).map((_, i) => (
-              <ResizeHandle
-                key={`row-${i}`}
-                {...handle(i)}
-                className="h-3"
-                style={{
-                  top: boundary(sizes.rows, i),
-                  left: PADDING,
-                  right: PADDING,
-                }}
-              />
-            ))}
+            sizes.rows
+              .slice(0, -1)
+              .map((_, i) => (
+                <ResizeHandle
+                  key={`row-${i}`}
+                  {...handle(i)}
+                  className="h-3"
+                  style={{ top: boundary(sizes.rows, i), left: PADDING, right: PADDING }}
+                />
+              ))}
         </div>
       )}
 
       {/* Follows the pointer while a pane is dragged. */}
       {dragged && paneDrag.drag && (
         <div
-          className="pointer-events-none fixed z-50 flex items-center gap-2 rounded-md border border-line-strong bg-raised px-2.5 py-1 shadow-lg"
+          className="pane-drag-chip pointer-events-none fixed z-50 flex items-center gap-2 rounded-md border border-line-strong bg-raised px-2.5 py-1 shadow-lg"
           style={{ left: paneDrag.drag.x + 12, top: paneDrag.drag.y + 12 }}
         >
           <StatusDot className={tagDot[dragged.color]} />
