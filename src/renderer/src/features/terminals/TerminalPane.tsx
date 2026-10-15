@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { Maximize2, X } from 'lucide-react'
 import { IconButton } from '../../components/ui/Button'
 import { StatusDot } from '../../components/ui/StatusDot'
+import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { tagDot } from '../../lib/colors'
@@ -18,6 +19,7 @@ interface TerminalPaneProps {
 
 export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
   const { focus, close, setLayout, trackInput, setCwd } = useTerminals()
+  const t = useT()
   const subscribe = useCallback(
     (write: (data: string) => void) => terminalBus.attach(tab.id, write),
     [tab.id],
@@ -37,7 +39,7 @@ export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
           <span className={cn('truncate', active ? 'text-fg' : 'text-muted')}>{tab.title}</span>
           <div className="ml-auto flex items-center">
             <IconButton
-              label="Maximizar"
+              label={t.terminals.maximize}
               onClick={() => {
                 focus(tab.id)
                 setLayout('single')
@@ -45,7 +47,7 @@ export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
             >
               <Maximize2 size={13} />
             </IconButton>
-            <IconButton label="Fechar terminal" onClick={() => void close(tab.id)}>
+            <IconButton label={t.terminals.close} onClick={() => void close(tab.id)}>
               <X size={14} />
             </IconButton>
           </div>
@@ -64,7 +66,7 @@ export function TerminalPane({ tab, active, showHeader }: TerminalPaneProps) {
         />
         {tab.exitCode !== undefined && (
           <div className="absolute bottom-3 right-3 rounded-md border border-line bg-panel px-2.5 py-1 text-xs text-muted">
-            Processo encerrado (código {tab.exitCode})
+            {t.terminals.exited(tab.exitCode)}
           </div>
         )}
       </div>

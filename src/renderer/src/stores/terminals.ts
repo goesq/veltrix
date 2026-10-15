@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { MAX_TERMINALS } from '@shared/constants'
 import type { AgentColor, TerminalSession } from '@shared/types'
+import { messages } from '../i18n'
 import { api } from '../lib/api'
 import { colorAt } from '../lib/colors'
 import { terminalBus } from '../lib/terminalBus'
@@ -76,7 +77,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
 
   open: async ({ cwd, title, profileId, projectId, activate = true } = {}) => {
     if (!get().canOpen()) {
-      set({ error: `Limite de ${MAX_TERMINALS} terminais atingido.` })
+      set({ error: messages().terminals.limitReached(MAX_TERMINALS) })
       return undefined
     }
     try {
@@ -208,7 +209,10 @@ function snapshot({ tabs, activeId, layout }: TerminalState): TerminalSession {
       cwd: tab.cwd,
       title: tab.titleSource === 'manual' ? tab.title : undefined,
     })),
-    activeIndex: Math.max(0, visible.findIndex((tab) => tab.id === activeId)),
+    activeIndex: Math.max(
+      0,
+      visible.findIndex((tab) => tab.id === activeId),
+    ),
     layout,
   }
 }

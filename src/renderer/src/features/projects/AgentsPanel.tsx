@@ -3,10 +3,11 @@ import { Bot, Pencil, Plus, Trash2 } from 'lucide-react'
 import type { Agent, Project } from '@shared/types'
 import { Button, IconButton } from '../../components/ui/Button'
 import { StatusDot } from '../../components/ui/StatusDot'
+import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { tagDot } from '../../lib/colors'
 import { AgentDialog } from './AgentDialog'
-import { providers } from './providers'
+import { providerLabel } from './providers'
 
 interface AgentsPanelProps {
   project: Project
@@ -14,24 +15,24 @@ interface AgentsPanelProps {
 
 export function AgentsPanel({ project }: AgentsPanelProps) {
   const [dialog, setDialog] = useState<{ open: boolean; agent?: Agent }>({ open: false })
+  const t = useT()
 
   return (
     <section className="flex flex-col gap-3">
       <header className="flex items-center justify-between">
-        <h3 className="text-xs font-medium uppercase tracking-wider text-faint">Agentes</h3>
-        <IconButton label="Adicionar agente" onClick={() => setDialog({ open: true })}>
+        <h3 className="text-xs font-medium uppercase tracking-wider text-faint">
+          {t.agents.title}
+        </h3>
+        <IconButton label={t.agents.add} onClick={() => setDialog({ open: true })}>
           <Plus size={15} />
         </IconButton>
       </header>
 
       {project.agents.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-line p-4">
-          <p className="text-muted">
-            Conecte agentes ao orquestrador. Cada um recebe um papel e executa as tarefas que o
-            orquestrador distribuir.
-          </p>
+          <p className="text-muted">{t.agents.empty}</p>
           <Button icon={<Bot size={15} />} onClick={() => setDialog({ open: true })}>
-            Adicionar agente
+            {t.agents.add}
           </Button>
         </div>
       ) : (
@@ -48,13 +49,16 @@ export function AgentsPanel({ project }: AgentsPanelProps) {
                 <div className="flex items-center gap-2">
                   <StatusDot className={tagDot[agent.color]} pulse={Boolean(current)} />
                   <span className="font-medium">{agent.name}</span>
-                  <span className="text-xs text-faint">{providers[agent.provider].label}</span>
+                  <span className="text-xs text-faint">{providerLabel(agent.provider, t)}</span>
                   <div className="ml-auto flex opacity-0 transition-opacity group-hover:opacity-100">
-                    <IconButton label="Editar" onClick={() => setDialog({ open: true, agent })}>
+                    <IconButton
+                      label={t.common.edit}
+                      onClick={() => setDialog({ open: true, agent })}
+                    >
                       <Pencil size={13} />
                     </IconButton>
                     <IconButton
-                      label="Remover"
+                      label={t.common.remove}
                       onClick={() => void api.projects.removeAgent(project.id, agent.id)}
                     >
                       <Trash2 size={13} />
@@ -63,7 +67,7 @@ export function AgentsPanel({ project }: AgentsPanelProps) {
                 </div>
                 {agent.role && <p className="line-clamp-2 text-xs text-muted">{agent.role}</p>}
                 <p className="truncate text-xs text-faint">
-                  {current ? `▸ ${current.title}` : 'Ocioso'}
+                  {current ? `▸ ${current.title}` : t.agents.idle}
                 </p>
               </li>
             )

@@ -1,8 +1,16 @@
 import type { AgentProvider } from '@shared/types'
+import type { Messages } from '../../i18n'
 
-export const providers: Record<AgentProvider, { label: string; description: string }> = {
-  claude: { label: 'Claude Code', description: 'Executa `claude -p` no diretório do projeto.' },
-  codex: { label: 'Codex CLI', description: 'Executa `codex exec` com sandbox de escrita no projeto.' },
-  gemini: { label: 'Gemini CLI', description: 'Executa `gemini -p` aprovando apenas edições.' },
-  custom: { label: 'Comando próprio', description: 'Qualquer CLI headless. Use {prompt} no comando.' },
+/** Order the tools are offered in. */
+export const providerIds: AgentProvider[] = ['claude', 'codex', 'gemini', 'custom']
+
+/** Product names stay the same in every language; only the custom option is translated. */
+const productNames: Record<Exclude<AgentProvider, 'custom'>, string> = {
+  claude: 'Claude Code',
+  codex: 'Codex CLI',
+  gemini: 'Gemini CLI',
+}
+
+export function providerLabel(provider: AgentProvider, t: Messages): string {
+  return provider === 'custom' ? t.providers.customLabel : productNames[provider]
 }

@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { RotateCcw, X } from 'lucide-react'
 import { Button, IconButton } from '../../components/ui/Button'
+import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
-import { actionIds, actions, type ActionId } from '../../keybindings/actions'
+import {
+  actionIds,
+  actionLabel,
+  actions,
+  type ActionGroup,
+  type ActionId,
+} from '../../keybindings/actions'
 import {
   currentOverrides,
   defaultBinding,
@@ -13,12 +20,13 @@ import { comboFromEvent, formatCombo, isBindable, type KeyCombo } from '../../ke
 import { useSettings } from '../../stores/settings'
 import { useUi } from '../../stores/ui'
 
-const groups = ['Geral', 'Terminais', 'Projetos'] as const
+const groups: ActionGroup[] = ['general', 'terminals', 'projects']
 
 /** Lists every action with its shortcut; click one to record a new combination. */
 export function ShortcutSettings() {
   const bindings = useBindings()
   const update = useSettings((s) => s.update)
+  const t = useT()
   const [recording, setRecording] = useState<ActionId | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -60,12 +68,12 @@ export function ShortcutSettings() {
       const combo = comboFromEvent(event)
       if (!combo) return
       if (!isBindable(combo)) {
-        setMessage('Inclua Ctrl, Alt ou ⌘ na combinação para não atrapalhar a digitação.')
+        setMessage(t.shortcuts.needsModifier)
         return
       }
       const owner = actionIds.find((id) => id !== recording && bindings[id] === combo)
       if (owner) {
-        setMessage(`${formatCombo(combo)} já é usado por "${actions[owner].label}".`)
+        setMessage(t.shortcuts.inUse(formatCombo(combo), actionLabel(owner, t)))
         return
       }
       void assign(recording, combo).then(stop)
@@ -75,7 +83,7 @@ export function ShortcutSettings() {
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
     // `assign` reads fresh overrides on every call; `bindings` is needed for conflicts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recording, bindings])
+  }, [recording, bindings, t])
 
   // Never leave global shortcuts paused when leaving the page mid-recording.
   useEffect(() => () => useUi.getState().setRecordingShortcut(false), [])
@@ -85,13 +93,13 @@ export function ShortcutSettings() {
   return (
     <div className="flex flex-col gap-5">
       <p className="text-muted">
-        Clique num atalho e pressione a nova combinação. <Kbd>Esc</Kbd> cancela,{' '}
-        <Kbd>Backspace</Kbd> remove.
+        {t.shortcuts.instructions} <Kbd>Esc</Kbd> {t.shortcuts.escCancels}, <Kbd>Backspace</Kbd>{' '}
+        {t.shortcuts.backspaceRemoves}.
       </p>
 
       {groups.map((group) => (
         <div key={group} className="flex flex-col">
-          <h3 className="pb-1.5 text-xs text-faint">{group}</h3>
+          <h3 className="pb-1.5 text-xs text-faint">{t.actions.groups[group]}</h3>
           <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
             {actionIds
               .filter((id) => actions[id].group === group)
@@ -102,15 +110,15 @@ export function ShortcutSettings() {
                 return (
                   <li key={id} className="group flex flex-col">
                     <div className="flex h-10 items-center gap-3 px-3">
-                      <span className="flex-1 truncate">{actions[id].label}</span>
+                      <span className="flex-1 truncate">{actionLabel(id, t)}</span>
                       {customized && !isRecording && (
-                        <IconButton label="Restaurar padrão" onClick={() => void reset(id)}>
+                        <IconButton label={t.shortcuts.reset} onClick={() => void reset(id)}>
                           <RotateCcw size={13} />
                         </IconButton>
                       )}
                       {combo && !isRecording && (
                         <IconButton
-                          label="Remover atalho"
+                          label={t.shortcuts.remove}
                           className="opacity-0 group-hover:opacity-100"
                           onClick={() => void assign(id, null)}
                         >
@@ -130,7 +138,7 @@ export function ShortcutSettings() {
                             : 'border-line text-muted hover:border-line-strong hover:text-fg',
                         )}
                       >
-                        {isRecording ? 'Pressione…' : combo ? formatCombo(combo) : '—'}
+                        {isRecording ? t.shortcuts.recording : combo ? formatCombo(combo) : '—'}
                       </button>
                     </div>
                     {isRecording && message && (
@@ -145,7 +153,7 @@ export function ShortcutSettings() {
 
       <div className="flex justify-end">
         <Button variant="ghost" disabled={!hasOverrides} onClick={() => void save({})}>
-          Restaurar todos os padrões
+          {t.shortcuts.resetAll}
         </Button>
       </div>
     </div>

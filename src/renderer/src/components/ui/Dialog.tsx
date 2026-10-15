@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useT } from '../../i18n'
 import { IconButton } from './Button'
 
 interface DialogProps {
@@ -11,6 +12,7 @@ interface DialogProps {
 }
 
 export function Dialog({ title, open, onClose, children, footer }: DialogProps) {
+  const t = useT()
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent): void => {
@@ -35,13 +37,15 @@ export function Dialog({ title, open, onClose, children, footer }: DialogProps) 
       >
         <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <h2 className="text-sm font-semibold">{title}</h2>
-          <IconButton label="Fechar" onClick={onClose}>
+          <IconButton label={t.common.close} onClick={onClose}>
             <X size={16} />
           </IconButton>
         </header>
         <div className="flex flex-col gap-4 px-5 py-4">{children}</div>
         {footer && (
-          <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">{footer}</footer>
+          <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">
+            {footer}
+          </footer>
         )}
       </div>
     </div>

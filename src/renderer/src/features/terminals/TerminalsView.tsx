@@ -2,6 +2,7 @@ import { SquareTerminal, X } from 'lucide-react'
 import { MAX_TERMINALS } from '@shared/constants'
 import { Button, IconButton } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
 import { useTerminals, workspaceTabs } from '../../stores/terminals'
 import { TerminalPane } from './TerminalPane'
@@ -18,6 +19,7 @@ function gridColumns(count: number): number {
 export function TerminalsView() {
   const { tabs: allTabs, activeId, layout, open, error, dismissError } = useTerminals()
   const tabs = workspaceTabs(allTabs)
+  const t = useT()
   const grid = layout === 'grid' && tabs.length > 1
 
   return (
@@ -25,7 +27,7 @@ export function TerminalsView() {
       {error && (
         <div className="mx-3 mt-3 flex items-center justify-between rounded-md border border-danger/30 bg-danger/10 px-3 py-1.5 text-danger">
           <span>{error}</span>
-          <IconButton label="Dispensar" onClick={dismissError}>
+          <IconButton label={t.common.dismiss} onClick={dismissError}>
             <X size={14} />
           </IconButton>
         </div>
@@ -34,11 +36,11 @@ export function TerminalsView() {
       {tabs.length === 0 ? (
         <EmptyState
           icon={<SquareTerminal size={20} />}
-          title="Nenhum terminal aberto"
-          description={`Abra até ${MAX_TERMINALS} terminais e alterne entre eles pela barra lateral ou pelos atalhos.`}
+          title={t.terminals.emptyTitle}
+          description={t.terminals.emptyDescription(MAX_TERMINALS)}
           action={
             <Button variant="primary" onClick={() => void open()}>
-              Novo terminal
+              {t.terminals.newTerminal}
             </Button>
           }
         />

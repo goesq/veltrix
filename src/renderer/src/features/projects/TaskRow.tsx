@@ -3,6 +3,7 @@ import { ChevronRight, RotateCcw, Square } from 'lucide-react'
 import type { Agent, Task } from '@shared/types'
 import { IconButton } from '../../components/ui/Button'
 import { StatusDot } from '../../components/ui/StatusDot'
+import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { tagDot, tagText } from '../../lib/colors'
@@ -22,6 +23,7 @@ export function TaskRow({ task, agent, dependencies }: TaskRowProps) {
   const canCancel = task.status === 'pending' || task.status === 'running'
   const canRetry = ['failed', 'cancelled', 'blocked'].includes(task.status)
   const elapsed = useElapsed(task)
+  const t = useT()
 
   return (
     <li className="rounded-lg border border-line bg-surface">
@@ -46,13 +48,13 @@ export function TaskRow({ task, agent, dependencies }: TaskRowProps) {
           </span>
         )}
         <span className={cn('w-20 shrink-0 text-right text-xs', status.text)}>
-          {status.label}
+          {t.taskStatus[task.status]}
         </span>
         <span className="w-14 shrink-0 text-right font-mono text-[11px] text-faint">{elapsed}</span>
         <div className="flex w-7 shrink-0 justify-end">
           {canCancel && (
             <IconButton
-              label="Cancelar tarefa"
+              label={t.orchestrator.cancelTask}
               onClick={() => void api.orchestrator.cancelTask(task.projectId, task.id)}
             >
               <Square size={12} />
@@ -60,7 +62,7 @@ export function TaskRow({ task, agent, dependencies }: TaskRowProps) {
           )}
           {canRetry && (
             <IconButton
-              label="Tentar novamente"
+              label={t.orchestrator.retryTask}
               onClick={() => void api.orchestrator.retryTask(task.projectId, task.id)}
             >
               <RotateCcw size={13} />
@@ -74,7 +76,7 @@ export function TaskRow({ task, agent, dependencies }: TaskRowProps) {
           <p className="selectable whitespace-pre-wrap text-muted">{task.description}</p>
           {dependencies.length > 0 && (
             <p className="text-xs text-faint">
-              Depende de: {dependencies.map((d) => d.title).join(', ')}
+              {t.orchestrator.dependsOn(dependencies.map((d) => d.title).join(', '))}
             </p>
           )}
           {task.startedAt && (

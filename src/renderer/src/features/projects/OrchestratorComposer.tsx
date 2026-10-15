@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowUp } from 'lucide-react'
 import type { Project } from '@shared/types'
 import { Button } from '../../components/ui/Button'
+import { useT } from '../../i18n'
 import { api, isMac } from '../../lib/api'
 
 interface OrchestratorComposerProps {
@@ -14,6 +15,7 @@ export function OrchestratorComposer({ project }: OrchestratorComposerProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const noAgents = project.agents.length === 0
+  const t = useT()
 
   const submit = async (): Promise<void> => {
     if (!prompt.trim() || noAgents || submitting) return
@@ -41,11 +43,7 @@ export function OrchestratorComposer({ project }: OrchestratorComposerProps) {
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit()
         }}
-        placeholder={
-          noAgents
-            ? 'Adicione pelo menos um agente para começar.'
-            : 'Descreva o objetivo. O orquestrador divide em tarefas e distribui entre os agentes.'
-        }
+        placeholder={noAgents ? t.orchestrator.needsAgent : t.orchestrator.placeholder}
         className="block w-full resize-none bg-transparent px-4 pb-2 pt-3 text-[13px] placeholder:text-faint focus:outline-none disabled:opacity-50"
       />
       <div className="flex items-center justify-between gap-3 px-3 pb-3">
@@ -57,7 +55,7 @@ export function OrchestratorComposer({ project }: OrchestratorComposerProps) {
           onClick={() => void submit()}
           title={isMac ? '⌘ Enter' : 'Ctrl Enter'}
         >
-          {submitting ? 'Planejando…' : 'Enviar'}
+          {submitting ? t.orchestrator.planning : t.orchestrator.send}
         </Button>
       </div>
     </div>

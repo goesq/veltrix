@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ChevronRight, FolderKanban, Plus, SquareTerminal } from 'lucide-react'
-import { actionIds, actions } from '../../keybindings/actions'
+import { useT } from '../../i18n'
+import { actionIds, actionLabel, actions } from '../../keybindings/actions'
 import { useBindings } from '../../keybindings/bindings'
 import { formatCombo } from '../../keybindings/keys'
 import { cn } from '../../lib/cn'
@@ -29,6 +30,7 @@ export function CommandPalette() {
   const projects = useProjects((s) => s.projects)
   const shells = useShellProfiles((s) => s.profiles)
   const bindings = useBindings()
+  const t = useT()
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
 
@@ -38,7 +40,7 @@ export function CommandPalette() {
         const combo = bindings[id]
         return {
           id,
-          label: actions[id].label,
+          label: actionLabel(id, t),
           hint: combo ? formatCombo(combo) : undefined,
           icon: <ChevronRight size={15} />,
           run: actions[id].run,
@@ -46,7 +48,7 @@ export function CommandPalette() {
       }),
       ...shells.map((profile) => ({
         id: `new-terminal-${profile.id}`,
-        label: `Novo terminal: ${profile.name}`,
+        label: t.palette.newTerminalWith(profile.name),
         icon: <Plus size={15} />,
         run: () => {
           navigate('terminals')
@@ -56,7 +58,7 @@ export function CommandPalette() {
       ...workspaceTabs(terminals.tabs).map((tab, i) => ({
         id: `terminal-${tab.id}`,
         label: tab.title,
-        hint: `Terminal ${i + 1}`,
+        hint: t.palette.terminalAt(i + 1),
         icon: <SquareTerminal size={15} />,
         run: () => {
           navigate('terminals')
@@ -66,12 +68,12 @@ export function CommandPalette() {
       ...projects.map((project) => ({
         id: `project-${project.id}`,
         label: project.name,
-        hint: 'Projeto',
+        hint: t.palette.project,
         icon: <FolderKanban size={15} />,
         run: () => openProject(project.id),
       })),
     ],
-    [bindings, terminals, shells, projects, navigate, openProject],
+    [bindings, terminals, shells, projects, navigate, openProject, t],
   )
 
   const filtered = useMemo(() => {
@@ -114,11 +116,13 @@ export function CommandPalette() {
             if (e.key === 'ArrowUp') setIndex((i) => Math.max(i - 1, 0))
             if (e.key === 'Enter') run(filtered[index])
           }}
-          placeholder="Buscar comandos, terminais e projetos…"
+          placeholder={t.titleBar.search}
           className="h-12 w-full border-b border-line bg-transparent px-4 text-sm placeholder:text-faint focus:outline-none"
         />
         <ul className="max-h-80 overflow-y-auto p-1.5">
-          {filtered.length === 0 && <li className="px-3 py-2 text-muted">Nada encontrado.</li>}
+          {filtered.length === 0 && (
+            <li className="px-3 py-2 text-muted">{t.palette.nothingFound}</li>
+          )}
           {filtered.map((command, i) => (
             <li key={command.id}>
               <button

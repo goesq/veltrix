@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { AGENT_COLORS, type Agent, type AgentInput, type AgentProvider } from '@shared/types'
+import { AGENT_COLORS, type Agent, type AgentInput } from '@shared/types'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import { Field, Input, Textarea } from '../../components/ui/Field'
+import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { colorAt, tagDot } from '../../lib/colors'
-import { providers } from './providers'
+import { providerIds, providerLabel } from './providers'
 
 interface AgentDialogProps {
   projectId: string
@@ -29,6 +30,7 @@ const emptyAgent = (index: number): AgentInput => ({
 export function AgentDialog({ projectId, open, agent, agentCount, onClose }: AgentDialogProps) {
   const [draft, setDraft] = useState<AgentInput>(agent ?? emptyAgent(agentCount))
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     if (!open) return
@@ -52,44 +54,41 @@ export function AgentDialog({ projectId, open, agent, agentCount, onClose }: Age
 
   return (
     <Dialog
-      title={agent ? 'Editar agente' : 'Novo agente'}
+      title={agent ? t.agents.editTitle : t.agents.newTitle}
       open={open}
       onClose={onClose}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancelar
+            {t.common.cancel}
           </Button>
           <Button variant="primary" disabled={!valid} onClick={() => void save()}>
-            Salvar
+            {t.common.save}
           </Button>
         </>
       }
     >
-      <Field label="Nome">
+      <Field label={t.agents.name}>
         <Input
           autoFocus
           value={draft.name}
-          placeholder="ex.: backend"
+          placeholder={t.agents.namePlaceholder}
           onChange={(e) => patch({ name: e.target.value })}
         />
       </Field>
 
-      <Field
-        label="Papel"
-        hint="O orquestrador usa isso para decidir quais tarefas vão para este agente."
-      >
+      <Field label={t.agents.role} hint={t.agents.roleHint}>
         <Textarea
           rows={2}
           value={draft.role}
-          placeholder="ex.: API em Node.js, banco de dados e testes de integração"
+          placeholder={t.agents.rolePlaceholder}
           onChange={(e) => patch({ role: e.target.value })}
         />
       </Field>
 
-      <Field label="Ferramenta" hint={providers[draft.provider].description}>
+      <Field label={t.agents.tool} hint={t.providers[draft.provider]}>
         <div className="grid grid-cols-2 gap-1.5">
-          {(Object.keys(providers) as AgentProvider[]).map((provider) => (
+          {providerIds.map((provider) => (
             <button
               key={provider}
               type="button"
@@ -101,14 +100,14 @@ export function AgentDialog({ projectId, open, agent, agentCount, onClose }: Age
                   : 'border-line text-muted hover:border-line-strong hover:text-fg',
               )}
             >
-              {providers[provider].label}
+              {providerLabel(provider, t)}
             </button>
           ))}
         </div>
       </Field>
 
       {isCustom && (
-        <Field label="Comando" hint="Executado no diretório do projeto. {prompt} recebe a instrução.">
+        <Field label={t.agents.command} hint={t.agents.commandHint}>
           <Input
             className="font-mono text-xs"
             value={draft.commandTemplate}
@@ -118,7 +117,7 @@ export function AgentDialog({ projectId, open, agent, agentCount, onClose }: Age
         </Field>
       )}
 
-      <Field label="Cor">
+      <Field label={t.agents.color}>
         <div className="flex gap-2">
           {AGENT_COLORS.map((color) => (
             <button

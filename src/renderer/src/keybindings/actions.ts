@@ -1,11 +1,13 @@
 import { addProject } from '../features/projects/addProject'
+import type { Messages } from '../i18n'
 import { useTerminals, workspaceTabs } from '../stores/terminals'
 import { useUi } from '../stores/ui'
 import type { KeyCombo } from './keys'
 
+export type ActionGroup = keyof Messages['actions']['groups']
+
 interface ActionDefinition {
-  label: string
-  group: 'Geral' | 'Terminais' | 'Projetos'
+  group: ActionGroup
   /** Default bindings: `mac` uses ⌘ (Meta); `other` keeps plain Ctrl combos free for the shell. */
   defaults: { mac: KeyCombo | null; other: KeyCombo | null }
   run(): void
@@ -34,8 +36,7 @@ const focusActions = Object.fromEntries(
   TAB_POSITIONS.map((position) => [
     `terminal.focus${position}`,
     {
-      label: `Ir para o terminal ${position}`,
-      group: 'Terminais',
+      group: 'terminals',
       defaults: { mac: `Meta+${position}`, other: `Ctrl+${position}` },
       run: () => focusTerminal(position),
     },
@@ -44,44 +45,37 @@ const focusActions = Object.fromEntries(
 
 export const actions = {
   'palette.toggle': {
-    label: 'Abrir paleta de comandos',
-    group: 'Geral',
+    group: 'general',
     defaults: { mac: 'Meta+K', other: 'Ctrl+K' },
     run: () => ui().setPaletteOpen(!ui().paletteOpen),
   },
   'view.terminals': {
-    label: 'Mostrar terminais',
-    group: 'Geral',
+    group: 'general',
     defaults: { mac: 'Shift+Meta+1', other: 'Ctrl+Shift+1' },
     run: () => ui().navigate('terminals'),
   },
   'view.projects': {
-    label: 'Mostrar projetos',
-    group: 'Geral',
+    group: 'general',
     defaults: { mac: 'Shift+Meta+2', other: 'Ctrl+Shift+2' },
     run: () => ui().navigate('projects'),
   },
   'view.toggleSidebar': {
-    label: 'Recolher / expandir barra lateral',
-    group: 'Geral',
+    group: 'general',
     defaults: { mac: 'Meta+B', other: 'Ctrl+Shift+B' },
     run: () => ui().toggleSidebar(),
   },
   'view.settings': {
-    label: 'Abrir configurações',
-    group: 'Geral',
+    group: 'general',
     defaults: { mac: 'Meta+,', other: 'Ctrl+,' },
     run: () => ui().navigate('settings'),
   },
   'terminal.new': {
-    label: 'Novo terminal',
-    group: 'Terminais',
+    group: 'terminals',
     defaults: { mac: 'Meta+T', other: 'Ctrl+Shift+T' },
     run: openTerminal,
   },
   'terminal.close': {
-    label: 'Fechar terminal',
-    group: 'Terminais',
+    group: 'terminals',
     defaults: { mac: 'Meta+W', other: 'Ctrl+Shift+W' },
     run: () => {
       const { activeId, close } = terminals()
@@ -89,20 +83,17 @@ export const actions = {
     },
   },
   'terminal.next': {
-    label: 'Próximo terminal',
-    group: 'Terminais',
+    group: 'terminals',
     defaults: { mac: 'Shift+Meta+]', other: 'Ctrl+Tab' },
     run: () => terminals().focusRelative(1),
   },
   'terminal.previous': {
-    label: 'Terminal anterior',
-    group: 'Terminais',
+    group: 'terminals',
     defaults: { mac: 'Shift+Meta+[', other: 'Ctrl+Shift+Tab' },
     run: () => terminals().focusRelative(-1),
   },
   'terminal.toggleLayout': {
-    label: 'Alternar entre um terminal e grade',
-    group: 'Terminais',
+    group: 'terminals',
     defaults: { mac: 'Shift+Meta+G', other: 'Ctrl+Shift+G' },
     run: () => {
       const { layout, setLayout } = terminals()
@@ -111,8 +102,7 @@ export const actions = {
   },
   ...focusActions,
   'project.add': {
-    label: 'Adicionar projeto',
-    group: 'Projetos',
+    group: 'projects',
     defaults: { mac: 'Meta+O', other: 'Ctrl+Shift+O' },
     run: () => void addProject(),
   },
@@ -121,3 +111,12 @@ export const actions = {
 export type ActionId = keyof typeof actions
 
 export const actionIds = Object.keys(actions) as ActionId[]
+
+const FOCUS_PREFIX = 'terminal.focus'
+
+/** The action's name in the current language. */
+export function actionLabel(id: ActionId, t: Messages): string {
+  if (id.startsWith(FOCUS_PREFIX))
+    return t.actions['terminal.focus'](Number(id.slice(FOCUS_PREFIX.length)))
+  return t.actions[id as Exclude<ActionId, `terminal.focus${TabPosition}`>]
+}

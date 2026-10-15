@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { PROJECT_WORKSPACE_DIR } from '@shared/constants'
 import type { Project } from '@shared/types'
 import { Button } from '../../components/ui/Button'
+import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 
 interface ContextEditorProps {
@@ -13,6 +14,7 @@ export function ContextEditor({ project }: ContextEditorProps) {
   const [content, setContent] = useState<string | null>(null)
   const [saved, setSaved] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
   useEffect(() => {
     setContent(null)
@@ -38,9 +40,9 @@ export function ContextEditor({ project }: ContextEditorProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-muted">
-        Contexto compartilhado entre todos os agentes, salvo em{' '}
-        <code className="font-mono text-xs text-fg">{PROJECT_WORKSPACE_DIR}/CONTEXT.md</code>. Os
-        agentes também anotam aqui o que aprendem.
+        {t.context.introBefore}
+        <code className="font-mono text-xs text-fg">{PROJECT_WORKSPACE_DIR}/CONTEXT.md</code>
+        {t.context.introAfter}
       </p>
       <textarea
         value={content ?? ''}
@@ -57,9 +59,9 @@ export function ContextEditor({ project }: ContextEditorProps) {
       />
       <div className="flex items-center justify-end gap-3">
         {error && <span className="text-xs text-danger">{error}</span>}
-        <span className="text-xs text-faint">{dirty ? 'Alterações não salvas' : 'Salvo'}</span>
+        <span className="text-xs text-faint">{dirty ? t.context.unsaved : t.context.saved}</span>
         <Button variant="primary" disabled={!dirty} onClick={() => void save()}>
-          Salvar
+          {t.common.save}
         </Button>
       </div>
     </div>

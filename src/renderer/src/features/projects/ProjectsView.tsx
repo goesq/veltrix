@@ -2,6 +2,7 @@ import { FolderPlus } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusDot } from '../../components/ui/StatusDot'
+import { useT } from '../../i18n'
 import { useProjects } from '../../stores/projects'
 import { useUi } from '../../stores/ui'
 import { ProjectDetail } from './ProjectDetail'
@@ -10,6 +11,7 @@ import { addProject } from './addProject'
 export function ProjectsView() {
   const projects = useProjects((s) => s.projects)
   const { selectedProjectId, openProject } = useUi()
+  const t = useT()
   const selected = projects.find((p) => p.id === selectedProjectId)
 
   if (selected) return <ProjectDetail project={selected} />
@@ -18,11 +20,11 @@ export function ProjectsView() {
     return (
       <EmptyState
         icon={<FolderPlus size={20} />}
-        title="Nenhum projeto"
-        description="Um projeto é uma pasta onde agentes de IA trabalham juntos. Você envia o objetivo ao orquestrador, ele divide em tarefas e distribui entre os agentes, compartilhando o contexto."
+        title={t.projects.emptyTitle}
+        description={t.projects.emptyDescription}
         action={
           <Button variant="primary" onClick={() => void addProject()}>
-            Adicionar projeto
+            {t.projects.add}
           </Button>
         }
       />
@@ -32,9 +34,9 @@ export function ProjectsView() {
   return (
     <div className="flex flex-col gap-5 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-base font-semibold">Projetos</h1>
+        <h1 className="text-base font-semibold">{t.projects.section}</h1>
         <Button icon={<FolderPlus size={15} />} onClick={() => void addProject()}>
-          Adicionar projeto
+          {t.projects.add}
         </Button>
       </header>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
@@ -53,8 +55,8 @@ export function ProjectsView() {
               </div>
               <span className="truncate font-mono text-xs text-faint">{project.path}</span>
               <span className="text-xs text-muted">
-                {project.agents.length} agente(s)
-                {running > 0 && ` · ${running} tarefa(s) em execução`}
+                {t.projects.agentCount(project.agents.length)}
+                {running > 0 && ` · ${t.projects.runningCount(running)}`}
               </span>
             </button>
           )

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { RotateCcw, SquareTerminal } from 'lucide-react'
 import type { Project } from '@shared/types'
 import { Button } from '../../components/ui/Button'
+import { useT } from '../../i18n'
 import { useTerminals } from '../../stores/terminals'
 import { TerminalPane } from '../terminals/TerminalPane'
 
@@ -12,6 +13,7 @@ import { TerminalPane } from '../terminals/TerminalPane'
 export function ProjectTerminal({ project }: { project: Project }) {
   const tab = useTerminals((s) => s.tabs.find((t) => t.projectId === project.id))
   const { openForProject, close, error } = useTerminals()
+  const t = useT()
 
   useEffect(() => {
     void openForProject(project.id, project.path, project.name)
@@ -36,7 +38,7 @@ export function ProjectTerminal({ project }: { project: Project }) {
             icon={<RotateCcw size={12} />}
             onClick={() => void restart()}
           >
-            Reiniciar
+            {t.projects.restartTerminal}
           </Button>
         )}
       </header>
@@ -44,7 +46,7 @@ export function ProjectTerminal({ project }: { project: Project }) {
         {tab ? (
           <TerminalPane tab={tab} active={false} showHeader={false} />
         ) : (
-          <p className="p-4 text-muted">{error ?? 'Abrindo terminal…'}</p>
+          <p className="p-4 text-muted">{error ?? t.projects.openingTerminal}</p>
         )}
       </div>
     </section>

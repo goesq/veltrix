@@ -1,5 +1,6 @@
 import { LoaderCircle } from 'lucide-react'
 import type { Goal, Project } from '@shared/types'
+import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
 import { goalStatus } from './status'
 import { TaskRow } from './TaskRow'
@@ -13,6 +14,7 @@ export function GoalCard({ goal, project }: GoalCardProps) {
   const tasks = project.tasks.filter((task) => task.goalId === goal.id)
   const done = tasks.filter((task) => task.status === 'done').length
   const status = goalStatus[goal.status]
+  const t = useT()
 
   return (
     <article className="flex flex-col gap-3 rounded-lg border border-line bg-panel p-4">
@@ -23,15 +25,13 @@ export function GoalCard({ goal, project }: GoalCardProps) {
             {done}/{tasks.length}
           </span>
         )}
-        <span className={cn('shrink-0 text-xs', status.text)}>
-          {status.label}
-        </span>
+        <span className={cn('shrink-0 text-xs', status.text)}>{t.goalStatus[goal.status]}</span>
       </header>
 
       {goal.status === 'planning' && (
         <p className="flex items-center gap-2 text-muted">
           <LoaderCircle size={14} className="animate-spin" />
-          O orquestrador está dividindo o objetivo em tarefas…
+          {t.orchestrator.planningGoal}
         </p>
       )}
       {goal.plan && <p className="selectable text-muted">{goal.plan}</p>}
