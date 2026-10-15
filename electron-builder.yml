@@ -12,6 +12,9 @@ asarUnpack:
   - node_modules/node-pty/**
 mac:
   category: public.app-category.developer-tools
+  # Built from icon.png with PNG entries only, like iconutil. The .icns electron-builder
+  # converts on its own carries ARGB 16/32 px entries that Spotlight draws as noise.
+  icon: icon.icns
   # No Developer ID certificate yet: sign ad hoc, which Apple Silicon requires to launch.
   # The hardened runtime is only needed for notarization, and without entitlements it
   # would stop Electron's JIT, so it stays off until the app is notarized.
