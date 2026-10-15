@@ -206,7 +206,10 @@ if [ -n "$VELTRIX_PROMPT" ]; then
 fi
 
 if [ -n "$VELTRIX_BANNER_ART" ]; then
-  mapfile -t __veltrix_art <<< "$VELTRIX_BANNER_ART"
+  # A read loop, not mapfile: macOS ships bash 3.2, which predates it.
+  __veltrix_art=()
+  while IFS= read -r __veltrix_line; do __veltrix_art+=("$__veltrix_line"); done <<< "$VELTRIX_BANNER_ART"
+  unset __veltrix_line
   __veltrix_banner_version=$VELTRIX_BANNER_VERSION
   __veltrix_banner_shell=$VELTRIX_BANNER_SHELL
   __veltrix_banner_folder=$VELTRIX_BANNER_FOLDER

@@ -87,7 +87,9 @@ jobs:
             if [[ "$(lipo -archs "$binary")" == x86_64 ]] && ! arch -x86_64 /usr/bin/true 2>/dev/null; then
               echo "::warning::Rosetta is missing on this runner; $dmg was not launched."
             else
-              "$binary" --smoke-test
+              # zsh is the macOS default; bash is still common. The default terminal follows $SHELL.
+              SHELL=/bin/zsh "$binary" --smoke-test
+              SHELL=/bin/bash "$binary" --smoke-test
             fi
             hdiutil detach "$mount"
             echo "::endgroup::"
