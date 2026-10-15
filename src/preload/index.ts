@@ -7,7 +7,8 @@ function subscribe<Args extends unknown[]>(
   channel: string,
   listener: (...args: Args) => void,
 ): Unsubscribe {
-  const handler = (_event: IpcRendererEvent, ...args: unknown[]): void => listener(...(args as Args))
+  const handler = (_event: IpcRendererEvent, ...args: unknown[]): void =>
+    listener(...(args as Args))
   ipcRenderer.on(channel, handler)
   return () => ipcRenderer.removeListener(channel, handler)
 }
@@ -30,6 +31,7 @@ const api: VeltrixApi = {
   projects: {
     list: () => ipcRenderer.invoke(IpcChannel.projectsList),
     create: (input) => ipcRenderer.invoke(IpcChannel.projectsCreate, input),
+    update: (projectId, input) => ipcRenderer.invoke(IpcChannel.projectsUpdate, projectId, input),
     remove: (projectId) => ipcRenderer.invoke(IpcChannel.projectsRemove, projectId),
     saveAgent: (projectId, agent) =>
       ipcRenderer.invoke(IpcChannel.projectsSaveAgent, projectId, agent),

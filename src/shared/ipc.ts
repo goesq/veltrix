@@ -31,6 +31,7 @@ export const IpcChannel = {
 
   projectsList: 'projects:list',
   projectsCreate: 'projects:create',
+  projectsUpdate: 'projects:update',
   projectsRemove: 'projects:remove',
   projectsSaveAgent: 'projects:save-agent',
   projectsRemoveAgent: 'projects:remove-agent',
@@ -72,6 +73,8 @@ export interface VeltrixApi {
   projects: {
     list(): Promise<Project[]>
     create(input: ProjectInput): Promise<Project>
+    /** Renames the project or points it at another folder (not while tasks are running). */
+    update(projectId: string, input: ProjectInput): Promise<Project>
     remove(projectId: string): Promise<void>
     saveAgent(projectId: string, agent: AgentInput & { id?: string }): Promise<Agent>
     removeAgent(projectId: string, agentId: string): Promise<void>

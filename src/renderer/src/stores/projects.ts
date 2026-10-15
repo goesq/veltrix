@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Project } from '@shared/types'
+import type { Project, ProjectInput } from '@shared/types'
 import { api } from '../lib/api'
 
 interface ProjectState {
@@ -7,6 +7,7 @@ interface ProjectState {
   loaded: boolean
   load(): Promise<void>
   create(path: string, name?: string): Promise<Project>
+  update(projectId: string, input: ProjectInput): Promise<Project>
   remove(projectId: string): Promise<void>
 }
 
@@ -18,6 +19,12 @@ export const useProjects = create<ProjectState>((set) => ({
 
   create: async (path, name = '') => {
     const project = await api.projects.create({ path, name })
+    set((state) => ({ projects: upsert(state.projects, project) }))
+    return project
+  },
+
+  update: async (projectId, input) => {
+    const project = await api.projects.update(projectId, input)
     set((state) => ({ projects: upsert(state.projects, project) }))
     return project
   },

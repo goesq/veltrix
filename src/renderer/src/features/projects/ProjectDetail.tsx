@@ -1,15 +1,16 @@
 import { useState } from 'react'
-import { Eraser, Trash2 } from 'lucide-react'
+import { Eraser, MoreHorizontal } from 'lucide-react'
 import type { Project } from '@shared/types'
-import { Button } from '../../components/ui/Button'
+import { Button, IconButton } from '../../components/ui/Button'
+import { Menu } from '../../components/ui/Menu'
+import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useProjects } from '../../stores/projects'
-import { useTerminals } from '../../stores/terminals'
 import { AgentsPanel } from './AgentsPanel'
 import { ContextEditor } from './ContextEditor'
 import { GoalCard } from './GoalCard'
 import { OrchestratorComposer } from './OrchestratorComposer'
+import { EditProjectDialog, RemoveProjectDialog } from './ProjectDialogs'
 import { ProjectTerminal } from './ProjectTerminal'
 
 type Tab = 'orchestrator' | 'agents' | 'context'
@@ -17,20 +18,12 @@ type Tab = 'orchestrator' | 'agents' | 'context'
 /** Orchestrator, agents and shared context on the left; the project's terminal on the right. */
 export function ProjectDetail({ project }: { project: Project }) {
   const [tab, setTab] = useState<Tab>('orchestrator')
-  const removeProject = useProjects((s) => s.remove)
-  const projectTerminal = useTerminals((s) => s.tabs.find((t) => t.projectId === project.id))
-  const closeTerminal = useTerminals((s) => s.close)
+  const [dialog, setDialog] = useState<'edit' | 'remove' | null>(null)
+  const t = useT()
 
   const goals = [...project.goals].sort((a, b) => b.createdAt - a.createdAt)
   const hasFinished = goals.some((g) => g.status === 'done' || g.status === 'failed')
   const busy = project.tasks.some((t) => t.status === 'running')
-
-  const remove = async (): Promise<void> => {
-    if (busy) return
-    if (!window.confirm(`Remover "${project.name}" do Veltrix? Os arquivos não são apagados.`)) return
-    if (projectTerminal) await closeTerminal(projectTerminal.id)
-    await removeProject(project.id)
-  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -39,26 +32,48 @@ export function ProjectDetail({ project }: { project: Project }) {
           <h1 className="truncate text-base font-semibold">{project.name}</h1>
           <p className="selectable truncate font-mono text-xs text-faint">{project.path}</p>
         </div>
-        <Button
-          variant="danger"
-          icon={<Trash2 size={15} />}
-          disabled={busy}
-          title={busy ? 'Aguarde as tarefas em execução terminarem' : 'Remover projeto'}
-          onClick={() => void remove()}
+        <Menu
+          align="right"
+          items={[
+            { id: 'edit', label: t.projects.edit, onSelect: () => setDialog('edit') },
+            {
+              id: 'remove',
+              label: t.projects.remove,
+              danger: true,
+              onSelect: () => setDialog('remove'),
+            },
+          ]}
+          trigger={({ open, toggle }) => (
+            <IconButton label={t.projects.options} active={open} onClick={toggle}>
+              <MoreHorizontal size={16} />
+            </IconButton>
+          )}
         />
       </header>
+      <EditProjectDialog
+        project={project}
+        open={dialog === 'edit'}
+        busy={busy}
+        onClose={() => setDialog(null)}
+      />
+      <RemoveProjectDialog
+        project={project}
+        open={dialog === 'remove'}
+        busy={busy}
+        onClose={() => setDialog(null)}
+      />
 
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-[380px] flex-1 flex-col border-r border-line">
           <div className="flex items-center gap-1 border-b border-line px-6">
             <TabButton active={tab === 'orchestrator'} onClick={() => setTab('orchestrator')}>
-              Orquestrador
+              {t.projects.tabs.orchestrator}
             </TabButton>
             <TabButton active={tab === 'agents'} onClick={() => setTab('agents')}>
-              {`Agentes (${project.agents.length})`}
+              {t.projects.tabs.agents(project.agents.length)}
             </TabButton>
             <TabButton active={tab === 'context'} onClick={() => setTab('context')}>
-              Contexto
+              {t.projects.tabs.context}
             </TabButton>
             {tab === 'orchestrator' && hasFinished && (
               <Button
@@ -67,7 +82,7 @@ export function ProjectDetail({ project }: { project: Project }) {
                 icon={<Eraser size={14} />}
                 onClick={() => void api.orchestrator.clearFinished(project.id)}
               >
-                Limpar concluídos
+                {t.projects.clearFinished}
               </Button>
             )}
           </div>

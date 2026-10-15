@@ -53,6 +53,17 @@ export class ProjectRepository {
     return project
   }
 
+  /** Renames the project or moves it to another folder; the folder can't change mid-run. */
+  edit(projectId: string, input: ProjectInput): Project {
+    return this.update(projectId, (project) => {
+      if (input.path !== project.path && project.tasks.some((task) => task.status === 'running')) {
+        throw new Error('Wait for the running tasks to finish before changing the folder.')
+      }
+      project.path = input.path
+      project.name = input.name.trim() || basename(input.path)
+    })
+  }
+
   remove(projectId: string): void {
     this.projects.delete(projectId)
     this.store.write({ projects: this.list() })

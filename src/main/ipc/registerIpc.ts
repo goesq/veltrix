@@ -51,6 +51,11 @@ export function registerIpc({
     await new ProjectWorkspace(project).ensure()
     return project
   })
+  ipcMain.handle(IpcChannel.projectsUpdate, async (_e, projectId: string, input: ProjectInput) => {
+    const project = projects.edit(projectId, input)
+    await new ProjectWorkspace(project).ensure()
+    return project
+  })
   ipcMain.handle(IpcChannel.projectsRemove, (_e, projectId: string) => projects.remove(projectId))
   ipcMain.handle(
     IpcChannel.projectsSaveAgent,
