@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Eraser, MoreHorizontal } from 'lucide-react'
 import type { Project } from '@shared/types'
 import { Button, IconButton } from '../../components/ui/Button'
 import { Menu } from '../../components/ui/Menu'
+import { ResizeHandle } from '../../components/ui/ResizeHandle'
 import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { loadSizes, resizePair, saveSizes } from '../../lib/layoutSizes'
 import { AgentsPanel } from './AgentsPanel'
 import { ContextEditor } from './ContextEditor'
 import { GoalCard } from './GoalCard'
@@ -15,11 +17,45 @@ import { ProjectTerminal } from './ProjectTerminal'
 
 type Tab = 'orchestrator' | 'agents' | 'context'
 
+/** Orchestrator side and terminal side, as relative weights; shared by every project. */
+const SPLIT_ID = 'projects.split'
+const DEFAULT_SPLIT = [54, 46]
+/** Smallest either side can be dragged to. */
+const MIN_SIDE_WIDTH = 300
+
+/** The draggable split between the orchestrator and the terminal, remembered across projects. */
+function useSplit() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [sizes, setSizes] = useState(() => loadSizes(SPLIT_ID, DEFAULT_SPLIT))
+  const dragStart = useRef(sizes)
+  const latest = useRef(sizes)
+  latest.current = sizes
+
+  const handle = {
+    axis: 'x' as const,
+    onDragStart: () => {
+      dragStart.current = latest.current
+    },
+    onDrag: (delta: number) => {
+      const width = containerRef.current?.clientWidth ?? 0
+      setSizes(resizePair(dragStart.current, 0, delta, width, MIN_SIDE_WIDTH))
+    },
+    onDragEnd: () => saveSizes(SPLIT_ID, latest.current),
+    onReset: () => {
+      setSizes(DEFAULT_SPLIT)
+      saveSizes(SPLIT_ID, DEFAULT_SPLIT)
+    },
+  }
+  return { containerRef, sizes, handle }
+}
+
 /** Orchestrator, agents and shared context on the left; the project's terminal on the right. */
 export function ProjectDetail({ project }: { project: Project }) {
   const [tab, setTab] = useState<Tab>('orchestrator')
   const [dialog, setDialog] = useState<'edit' | 'remove' | null>(null)
   const t = useT()
+  const split = useSplit()
+  const [leftSize, rightSize] = split.sizes
 
   const goals = [...project.goals].sort((a, b) => b.createdAt - a.createdAt)
   const hasFinished = goals.some((g) => g.status === 'done' || g.status === 'failed')
@@ -63,8 +99,8 @@ export function ProjectDetail({ project }: { project: Project }) {
         onClose={() => setDialog(null)}
       />
 
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-w-[380px] flex-1 flex-col border-r border-line">
+      <div ref={split.containerRef} className="relative flex min-h-0 flex-1">
+        <div className="flex min-w-[240px] flex-col" style={{ flex: `${leftSize} 1 0px` }}>
           <div className="flex items-center gap-1 border-b border-line px-6">
             <TabButton active={tab === 'orchestrator'} onClick={() => setTab('orchestrator')}>
               {t.projects.tabs.orchestrator}
@@ -101,7 +137,14 @@ export function ProjectDetail({ project }: { project: Project }) {
           </div>
         </div>
 
-        <div className="flex w-[46%] min-w-[360px] flex-col bg-app">
+        <ResizeHandle
+          {...split.handle}
+          showLine
+          className="inset-y-0 w-3"
+          style={{ left: `calc(${(leftSize / (leftSize + rightSize)) * 100}% - 6px)` }}
+        />
+
+        <div className="flex min-w-[240px] flex-col bg-app" style={{ flex: `${rightSize} 1 0px` }}>
           <ProjectTerminal key={project.id} project={project} />
         </div>
       </div>
@@ -123,7 +166,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        '-mb-px h-10 border-b-2 px-3 transition-colors',
+        '-mb-px h-10 shrink-0 whitespace-nowrap border-b-2 px-3 transition-colors',
         active ? 'border-fg text-fg' : 'border-transparent text-muted hover:text-fg',
       )}
     >
