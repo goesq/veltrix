@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { isMac } from '../../lib/api'
 import { cwdFromOsc7 } from '../../lib/cwd'
@@ -46,6 +47,7 @@ export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTer
     terminal.loadAddon(fit)
     terminal.loadAddon(new WebLinksAddon((_event, uri) => window.open(uri)))
     terminal.open(container)
+    loadWebglRenderer(terminal)
     terminal.attachCustomKeyEventHandler((event) => handleClipboardKeys(terminal, event))
 
     const input = terminal.onData((data) => callbacks.current.onInput?.(data))
@@ -114,4 +116,19 @@ function handleClipboardKeys(terminal: Terminal, event: KeyboardEvent): boolean 
   // Returning false lets the browser fire its native paste event, which xterm handles.
   if (key === 'v') return false
   return true
+}
+
+/**
+ * Renders with WebGL: faster, and box-drawing / block characters are drawn as custom glyphs
+ * that fill the whole cell, so banners and TUIs connect across lines despite the line height.
+ * Falls back to the DOM renderer when WebGL is unavailable or its context is lost.
+ */
+function loadWebglRenderer(terminal: Terminal): void {
+  try {
+    const webgl = new WebglAddon()
+    webgl.onContextLoss(() => webgl.dispose())
+    terminal.loadAddon(webgl)
+  } catch {
+    // No WebGL: xterm keeps its DOM renderer.
+  }
 }
