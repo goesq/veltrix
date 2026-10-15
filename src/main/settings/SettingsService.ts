@@ -1,4 +1,5 @@
 import { safeStorage } from 'electron'
+import { DEFAULT_LOCALE } from '@shared/i18n'
 import type { Settings, SettingsPatch } from '@shared/types'
 import { JsonStore } from '../infra/JsonStore'
 
@@ -12,6 +13,10 @@ const DEFAULTS: StoredSettings = {
   plannerModel: 'claude-opus-5-5',
   terminalFontSize: 13,
   defaultShellProfileId: null,
+  defaultTerminalCwd: null,
+  terminalPrompt: true,
+  terminalBanner: true,
+  language: DEFAULT_LOCALE,
   keybindings: {},
 }
 

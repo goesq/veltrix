@@ -1,5 +1,7 @@
 // Domain types shared by the main process, preload bridge and renderer.
 
+import type { Locale } from './i18n'
+
 export type Platform = 'darwin' | 'win32' | 'linux'
 
 // ── Terminals ────────────────────────────────────────────────────────────────
@@ -131,6 +133,14 @@ export interface Settings {
   terminalFontSize: number
   /** Shell profile for new terminals; null means the platform default. */
   defaultShellProfileId: string | null
+  /** Folder new terminals start in; null means the user's home folder. */
+  defaultTerminalCwd: string | null
+  /** Replace the shell's prompt with Veltrix's `➜ folder git:(branch)`. */
+  terminalPrompt: boolean
+  /** Print the Veltrix banner when a terminal starts. */
+  terminalBanner: boolean
+  /** Interface language (English by default); null follows the system language. */
+  language: Locale | null
   /** Shortcut overrides by action id; `null` unbinds. Missing actions use their default. */
   keybindings: Record<string, string | null>
 }

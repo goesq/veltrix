@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeImage } from 'electron'
+import { resolveLocale } from '@shared/i18n'
 import { IpcChannel } from '@shared/ipc'
 import { registerIpc } from './ipc/registerIpc'
 import { AgentRunner } from './orchestrator/agents/AgentRunner'
@@ -29,7 +30,19 @@ function bootstrap(): void {
   const projects = new ProjectRepository(join(dataDir, 'projects.json'))
 
   const shellProfiles = new ShellProfiles(() => settings.get().defaultShellProfileId)
-  const launcher = new ShellLauncher(join(dataDir, 'shell-integration'))
+  const launcher = new ShellLauncher(
+    join(dataDir, 'shell-integration'),
+    () => {
+      const { defaultTerminalCwd, terminalPrompt, terminalBanner, language } = settings.get()
+      return {
+        defaultCwd: defaultTerminalCwd,
+        prompt: terminalPrompt,
+        banner: terminalBanner,
+        locale: resolveLocale(language, app.getPreferredSystemLanguages()),
+      }
+    },
+    app.getVersion(),
+  )
   const session = new SessionStore(join(dataDir, 'session.json'))
   const terminals = new TerminalService(shellProfiles, launcher, {
     onData: (id, data) => send(IpcChannel.terminalData, id, data),
