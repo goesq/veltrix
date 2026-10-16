@@ -2,8 +2,10 @@ import type { PlannerCheck, PlannerEngine } from './ai'
 import type {
   Agent,
   AgentInput,
+  ContextDocument,
   Platform,
   Project,
+  ProjectContext,
   ProjectInput,
   Settings,
   SettingsPatch,
@@ -38,6 +40,8 @@ export const IpcChannel = {
   projectsRemoveAgent: 'projects:remove-agent',
   projectsReadContext: 'projects:read-context',
   projectsWriteContext: 'projects:write-context',
+  projectsSetContext: 'projects:set-context',
+  projectsPickContextFile: 'projects:pick-context-file',
   projectsChanged: 'projects:changed',
 
   orchestratorSubmit: 'orchestrator:submit',
@@ -82,8 +86,12 @@ export interface VeltrixApi {
     remove(projectId: string): Promise<void>
     saveAgent(projectId: string, agent: AgentInput & { id?: string }): Promise<Agent>
     removeAgent(projectId: string, agentId: string): Promise<void>
-    readContext(projectId: string): Promise<string>
-    writeContext(projectId: string, content: string): Promise<void>
+    /** A context file and its path; `agentId` picks an agent's own file in per-agent mode. */
+    readContext(projectId: string, agentId?: string): Promise<ContextDocument>
+    writeContext(projectId: string, content: string, agentId?: string): Promise<void>
+    setContext(projectId: string, context: ProjectContext): Promise<Project>
+    /** Asks for a file to use as context; resolves with its path as stored on the project. */
+    pickContextFile(projectId: string): Promise<string | null>
     onChanged(listener: (project: Project) => void): Unsubscribe
   }
   orchestrator: {

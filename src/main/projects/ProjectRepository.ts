@@ -1,5 +1,5 @@
 import { basename } from 'node:path'
-import type { Agent, AgentInput, Project, ProjectInput } from '@shared/types'
+import type { Agent, AgentInput, Project, ProjectContext, ProjectInput } from '@shared/types'
 import { JsonStore } from '../infra/JsonStore'
 import { newId } from '../infra/ids'
 
@@ -61,6 +61,15 @@ export class ProjectRepository {
       }
       project.path = input.path
       project.name = input.name.trim() || basename(input.path)
+    })
+  }
+
+  setContext(projectId: string, context: ProjectContext): Project {
+    if (context.scope === 'shared' && context.source === 'file' && !context.file.trim()) {
+      throw new Error('Choose the file agents should read.')
+    }
+    return this.update(projectId, (project) => {
+      project.context = context
     })
   }
 

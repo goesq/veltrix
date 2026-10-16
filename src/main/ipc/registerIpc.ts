@@ -1,8 +1,11 @@
+import { existsSync } from 'node:fs'
 import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from 'electron'
 import { KNOWN_BINARIES, type PlannerCheck, type PlannerEngine } from '@shared/ai'
 import { IpcChannel } from '@shared/ipc'
 import type {
   AgentInput,
+  ContextDocument,
+  ProjectContext,
   ProjectInput,
   SettingsPatch,
   TerminalCreateOptions,
@@ -69,12 +72,40 @@ export function registerIpc({
   ipcMain.handle(IpcChannel.projectsRemoveAgent, (_e, projectId: string, agentId: string) =>
     projects.removeAgent(projectId, agentId),
   )
-  ipcMain.handle(IpcChannel.projectsReadContext, (_e, projectId: string) =>
-    new ProjectWorkspace(projects.get(projectId)).readContext(),
+  ipcMain.handle(
+    IpcChannel.projectsReadContext,
+    async (_e, projectId: string, agentId?: string): Promise<ContextDocument> => {
+      const workspace = new ProjectWorkspace(projects.get(projectId))
+      const file = workspace.contextFile(agentId)
+      const content = await workspace.readContext(agentId)
+      return { path: file.path, content, exists: existsSync(file.absolute) }
+    },
   )
-  ipcMain.handle(IpcChannel.projectsWriteContext, (_e, projectId: string, content: string) =>
-    new ProjectWorkspace(projects.get(projectId)).writeContext(content),
+  ipcMain.handle(
+    IpcChannel.projectsWriteContext,
+    (_e, projectId: string, content: string, agentId?: string) =>
+      new ProjectWorkspace(projects.get(projectId)).writeContext(content, agentId),
   )
+  ipcMain.handle(IpcChannel.projectsSetContext, (_e, projectId: string, context: ProjectContext) =>
+    projects.setContext(projectId, context),
+  )
+  ipcMain.handle(IpcChannel.projectsPickContextFile, async (event, projectId: string) => {
+    const project = projects.get(projectId)
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options: OpenDialogOptions = {
+      defaultPath: project.path,
+      properties: ['openFile'],
+      filters: [
+        { name: 'Markdown', extensions: ['md', 'mdx', 'markdown', 'txt'] },
+        { name: '*', extensions: ['*'] },
+      ],
+    }
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options)
+    const file = result.canceled ? undefined : result.filePaths[0]
+    return file ? new ProjectWorkspace(project).projectPath(file) : null
+  })
 
   ipcMain.handle(IpcChannel.orchestratorSubmit, (_e, projectId: string, prompt: string) =>
     orchestrator.submit(projectId, prompt),

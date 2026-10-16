@@ -69,6 +69,11 @@ export interface Agent {
   provider: AgentProvider
   /** Only for the `custom` provider. `{prompt}` is replaced with the task instruction. */
   commandTemplate?: string
+  /**
+   * Context file of this agent when the project keeps one context per agent: a path
+   * relative to the project folder, or absolute. Missing means `.veltrix/agents/<id>.md`.
+   */
+  contextFile?: string
   color: AgentColor
 }
 
@@ -115,7 +120,29 @@ export interface Project {
   agents: Agent[]
   goals: Goal[]
   tasks: Task[]
+  /** How agents get the project's context; missing means one Veltrix file for everyone. */
+  context?: ProjectContext
   createdAt: number
+}
+
+/**
+ * Where the context agents read comes from. `shared`: one file for every agent (Veltrix's
+ * own, the project's CLAUDE.md, or any file). `perAgent`: each agent has its own file.
+ */
+export type ProjectContext =
+  | { scope: 'shared'; source: 'veltrix' | 'claudeMd' }
+  | { scope: 'shared'; source: 'file'; file: string }
+  | { scope: 'perAgent' }
+
+export const DEFAULT_PROJECT_CONTEXT: ProjectContext = { scope: 'shared', source: 'veltrix' }
+
+/** A context file opened in the editor. */
+export interface ContextDocument {
+  /** Relative to the project folder when inside it, else absolute. */
+  path: string
+  content: string
+  /** False for a picked file that isn't there yet; saving creates it. */
+  exists: boolean
 }
 
 export interface ProjectInput {

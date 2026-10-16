@@ -7,10 +7,19 @@ interface BriefInput {
   /** Finished tasks this one depends on. */
   dependencies: Task[]
   contextFile: string
+  /** Whether every agent reads `contextFile`, or only this one. */
+  sharedContext: boolean
 }
 
 /** Markdown brief written to `.veltrix/tasks/<id>.md`; the agent is pointed at this file. */
-export function buildTaskBrief({ agent, goal, task, dependencies, contextFile }: BriefInput): string {
+export function buildTaskBrief({
+  agent,
+  goal,
+  task,
+  dependencies,
+  contextFile,
+  sharedContext,
+}: BriefInput): string {
   const dependencySection = dependencies.length
     ? dependencies
         .map((dep) => `### ${dep.title}\n\n${dep.result?.trim() || '(no output captured)'}`)
@@ -26,11 +35,7 @@ You are one of several agents working in this repository at the same time, coord
 
 ${goal.prompt.trim()}
 
-## Shared context
-
-Read \`${contextFile}\` before starting. It holds the project conventions shared by every agent.
-If you learn something other agents must know (a decision, a convention, a gotcha),
-append it to the "Notes from agents" section of that file. Keep it short.
+${sharedContext ? sharedContextSection(contextFile) : ownContextSection(contextFile)}
 
 ## Results from tasks you depend on
 
@@ -46,6 +51,22 @@ ${task.description.trim()}
 - Do not commit, push or rewrite git history.
 - When done, end with a short summary of what you changed and anything left open.
 `
+}
+
+function sharedContextSection(contextFile: string): string {
+  return `## Shared context
+
+Read \`${contextFile}\` before starting. It holds the project conventions shared by every agent.
+If you learn something other agents must know (a decision, a convention, a gotcha),
+add it to that file under a "Notes from agents" heading. Keep it short.`
+}
+
+function ownContextSection(contextFile: string): string {
+  return `## Your context
+
+Read \`${contextFile}\` before starting. It is your own context for this project; other agents
+have their own. If you learn something you will need in later tasks (a decision, a convention,
+a gotcha), add it to that file under a "Notes" heading. Keep it short.`
 }
 
 export function taskInstruction(briefPath: string): string {

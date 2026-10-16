@@ -37,9 +37,14 @@ const api: VeltrixApi = {
       ipcRenderer.invoke(IpcChannel.projectsSaveAgent, projectId, agent),
     removeAgent: (projectId, agentId) =>
       ipcRenderer.invoke(IpcChannel.projectsRemoveAgent, projectId, agentId),
-    readContext: (projectId) => ipcRenderer.invoke(IpcChannel.projectsReadContext, projectId),
-    writeContext: (projectId, content) =>
-      ipcRenderer.invoke(IpcChannel.projectsWriteContext, projectId, content),
+    readContext: (projectId, agentId) =>
+      ipcRenderer.invoke(IpcChannel.projectsReadContext, projectId, agentId),
+    writeContext: (projectId, content, agentId) =>
+      ipcRenderer.invoke(IpcChannel.projectsWriteContext, projectId, content, agentId),
+    setContext: (projectId, context) =>
+      ipcRenderer.invoke(IpcChannel.projectsSetContext, projectId, context),
+    pickContextFile: (projectId) =>
+      ipcRenderer.invoke(IpcChannel.projectsPickContextFile, projectId),
     onChanged: (listener) => subscribe(IpcChannel.projectsChanged, listener),
   },
   orchestrator: {

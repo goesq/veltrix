@@ -64,7 +64,7 @@ export class Orchestrator {
     })
 
     try {
-      const context = await new ProjectWorkspace(project).readContext()
+      const context = await new ProjectWorkspace(project).plannerContext()
       const plan = await this.createPlanner().plan({
         project: this.projects.get(projectId),
         context,
@@ -208,9 +208,17 @@ export class Orchestrator {
     const goal = project.goals.find((g) => g.id === task.goalId)!
     const dependencies = project.tasks.filter((t) => task.dependsOn.includes(t.id))
 
+    await workspace.readContext(agent.id) // Creates the file from its template if needed.
     await workspace.writeBrief(
       task.id,
-      buildTaskBrief({ agent, goal, task, dependencies, contextFile: workspace.contextRelativePath }),
+      buildTaskBrief({
+        agent,
+        goal,
+        task,
+        dependencies,
+        contextFile: workspace.contextFile(agent.id).path,
+        sharedContext: project.context?.scope !== 'perAgent',
+      }),
     )
     const instruction = taskInstruction(workspace.briefRelativePath(task.id))
     return buildAgentCommand(agent, instruction, commandShell())

@@ -5,7 +5,7 @@ export const PLANNER_SYSTEM_PROMPT = `You are the orchestrator of a team of auto
 Break the user's goal into the smallest set of concrete tasks that fully achieves it, and assign each task to the agent whose role fits best.
 
 Guidelines:
-- Each task description must be self-contained: the agent only sees the shared project context, the results of the tasks it depends on, and its own description.
+- Each task description must be self-contained: the agent only sees its project context, the results of the tasks it depends on, and its own description.
 - Prefer parallel work: only add a dependency when a task truly needs another task's output.
 - Agents work in the same directory at the same time, so avoid giving parallel tasks overlapping files.
 - Use only the agent ids listed. Do not invent agents.
@@ -18,9 +18,9 @@ export function buildPlannerPrompt({ project, context, goal }: PlanRequest): str
 
   return `Project: ${project.name}
 
-<shared_context>
+<project_context>
 ${context.trim()}
-</shared_context>
+</project_context>
 
 <agents>
 ${agents}
