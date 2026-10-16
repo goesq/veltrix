@@ -51,6 +51,8 @@ export const ptBR = {
 
   projects: {
     section: 'Projetos',
+    beta: 'Beta',
+    betaHint: 'Em desenvolvimento: pode mudar e ainda ter falhas.',
     add: 'Adicionar projeto',
     none: 'Nenhum projeto ainda.',
     emptyTitle: 'Nenhum projeto',

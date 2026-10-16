@@ -1,10 +1,11 @@
 import { Fragment } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { AGENT_TOOL_IDS, AGENT_TOOLS } from '@shared/ai'
+import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { useT } from '../../i18n'
 import { useAiTools } from '../../stores/aiTools'
-import { Badge, SettingsCard, SettingsPage } from './parts'
+import { SettingsCard, SettingsPage } from './parts'
 
 /** The CLIs agents can run with, whether each one is installed, and the exact command used. */
 export function AgentToolSettings() {

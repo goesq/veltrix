@@ -1,7 +1,7 @@
 {
   "name": "veltrix",
   "productName": "Veltrix",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A clean multi-tab terminal with project-level AI agent orchestration.",
   "license": "MIT",
   "author": "Victor Goes",

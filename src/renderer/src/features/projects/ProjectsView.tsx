@@ -2,12 +2,13 @@ import { FolderPlus } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusDot } from '../../components/ui/StatusDot'
-import { ProjectGlyph } from './ProjectGlyph'
 import { useT } from '../../i18n'
 import { useProjects } from '../../stores/projects'
 import { useUi } from '../../stores/ui'
 import { ProjectDetail } from './ProjectDetail'
 import { addProject } from './addProject'
+import { BetaBadge } from './BetaBadge'
+import { ProjectGlyph } from './ProjectGlyph'
 
 export function ProjectsView() {
   const projects = useProjects((s) => s.projects)
@@ -22,6 +23,7 @@ export function ProjectsView() {
       <EmptyState
         icon={<FolderPlus size={20} />}
         title={t.projects.emptyTitle}
+        badge={<BetaBadge />}
         description={t.projects.emptyDescription}
         action={
           <Button variant="primary" onClick={() => void addProject()}>
@@ -35,7 +37,10 @@ export function ProjectsView() {
   return (
     <div className="flex flex-col gap-5 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-base font-semibold">{t.projects.section}</h1>
+        <h1 className="flex items-center gap-2 text-base font-semibold">
+          {t.projects.section}
+          <BetaBadge />
+        </h1>
         <Button icon={<FolderPlus size={15} />} onClick={() => void addProject()}>
           {t.projects.add}
         </Button>

@@ -1,10 +1,11 @@
 import { Fragment } from 'react'
 import { acceptsApiKey, PLANNER_ENGINE_IDS } from '@shared/ai'
+import { Badge } from '../../components/ui/Badge'
 import { useT } from '../../i18n'
 import { useSettings } from '../../stores/settings'
 import { ApiKeyField } from './ApiKeyField'
 import { engineName } from './engines'
-import { Badge, SettingsCard, SettingsPage } from './parts'
+import { SettingsCard, SettingsPage } from './parts'
 
 const KEY_ENGINES = PLANNER_ENGINE_IDS.filter(acceptsApiKey)
 

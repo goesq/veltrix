@@ -53,25 +53,3 @@ export function SettingsCard({
     </section>
   )
 }
-
-type BadgeTone = 'neutral' | 'success' | 'warning'
-
-const badgeTones: Record<BadgeTone, string> = {
-  neutral: 'border-line text-muted',
-  success: 'border-success/30 text-success',
-  warning: 'border-warning/30 text-warning',
-}
-
-/** Small status label, like "Installed" or "No key". */
-export function Badge({ tone = 'neutral', children }: { tone?: BadgeTone; children: ReactNode }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[11px] font-medium',
-        badgeTones[tone],
-      )}
-    >
-      {children}
-    </span>
-  )
-}

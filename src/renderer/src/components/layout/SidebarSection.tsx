@@ -9,6 +9,8 @@ interface SidebarSectionProps {
   collapsed: boolean
   active: boolean
   onSelect(): void
+  /** Shown beside the label, e.g. a "Beta" badge. Hidden in the icon-only sidebar. */
+  badge?: ReactNode
   /** Buttons on the right of the heading, e.g. "+". Hidden in the icon-only sidebar. */
   actions?: ReactNode
   children: ReactNode
@@ -21,6 +23,7 @@ export function SidebarSection({
   collapsed,
   active,
   onSelect,
+  badge,
   actions,
   children,
 }: SidebarSectionProps) {
@@ -46,6 +49,7 @@ export function SidebarSection({
         >
           {label}
         </button>
+        {badge && <span className="ml-2 flex items-center">{badge}</span>}
         <div className="ml-auto flex items-center">{actions}</div>
       </div>
       {children}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, CircleAlert, LoaderCircle, PlugZap } from 'lucide-react'
 import { plannerSpec, type PlannerCheck, type PlannerEngine } from '@shared/ai'
 import type { Settings } from '@shared/types'
+import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Field, Input } from '../../components/ui/Field'
 import { useT } from '../../i18n'
@@ -11,7 +12,7 @@ import { useAiTools } from '../../stores/aiTools'
 import { useSettings } from '../../stores/settings'
 import { ApiKeyField } from './ApiKeyField'
 import { ENGINE_GROUPS, engineName, enginesIn } from './engines'
-import { Badge, SettingsCard, SettingsPage } from './parts'
+import { SettingsCard, SettingsPage } from './parts'
 
 export function OrchestratorSettings() {
   const { settings, update } = useSettings()

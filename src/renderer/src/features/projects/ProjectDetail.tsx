@@ -10,6 +10,7 @@ import { cn } from '../../lib/cn'
 import { loadSizes, resizePair, saveSizes } from '../../lib/layoutSizes'
 import { CanvasView } from '../canvas/CanvasView'
 import { AgentsPanel } from './AgentsPanel'
+import { BetaBadge } from './BetaBadge'
 import { ContextEditor } from './ContextEditor'
 import { GoalCard } from './GoalCard'
 import { OrchestratorComposer } from './OrchestratorComposer'
@@ -70,6 +71,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           <h1 className="flex items-center gap-2 text-base font-semibold">
             <ProjectGlyph icon={project.icon} color={project.color} />
             <span className="truncate">{project.name}</span>
+            <BetaBadge />
           </h1>
           <p className="selectable truncate font-mono text-xs text-faint">{project.path}</p>
         </div>

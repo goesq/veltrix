@@ -1,5 +1,6 @@
 import { FolderKanban, Plus } from 'lucide-react'
 import { addProject } from '../../features/projects/addProject'
+import { BetaBadge } from '../../features/projects/BetaBadge'
 import { ProjectGlyph } from '../../features/projects/ProjectGlyph'
 import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
@@ -22,6 +23,7 @@ export function SidebarProjects({ collapsed }: { collapsed: boolean }) {
       collapsed={collapsed}
       active={view === 'projects' && selectedProjectId === null}
       onSelect={showProjects}
+      badge={<BetaBadge />}
       actions={
         <IconButton label={t.projects.add} className="size-6" onClick={() => void addProject()}>
           <Plus size={14} />

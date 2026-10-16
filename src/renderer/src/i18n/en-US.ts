@@ -50,6 +50,8 @@ export const enUS: Messages = {
 
   projects: {
     section: 'Projects',
+    beta: 'Beta',
+    betaHint: 'In development: it may change and still have bugs.',
     add: 'Add project',
     none: 'No projects yet.',
     emptyTitle: 'No projects',
