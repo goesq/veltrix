@@ -64,6 +64,7 @@ export const enUS: Messages = {
       orchestrator: 'Orchestrator',
       agents: (count) => `Agents (${count})`,
       context: 'Context',
+      canvas: 'Canvas',
     },
     clearFinished: 'Clear finished',
     restartTerminal: 'Restart',
@@ -142,6 +143,28 @@ export const enUS: Messages = {
     aider: 'Runs `aider --message`, without automatic commits.',
     custom: 'Any headless CLI. Use {prompt} in the command.',
     customLabel: 'Custom command',
+  },
+
+  canvas: {
+    addAgent: 'Add agent',
+    allOnCanvas: 'Every agent is already on the canvas.',
+    edgeHint:
+      'Drag from the right of one agent to another so it can send messages. Click a line to pause it; Delete removes it.',
+    emptyTitle: 'Empty canvas',
+    emptyDescription:
+      'Add agents and connect them with lines. Each one runs live and can message the agents it is connected to.',
+    noAgents: 'Create agents in the Agents tab to place them here.',
+    start: 'Start',
+    stop: 'Stop',
+    stopped: 'Session stopped. When started, the agent reads its instructions and waits.',
+    removeFromCanvas: 'Remove from canvas',
+    focusHint: 'Double-click to view at 100%',
+    permission: 'Session permissions',
+    permissionLocked: 'Stop the session to change its permissions',
+    permissionAsk: 'Ask',
+    permissionAcceptEdits: 'Accept edits',
+    messages: 'Messages',
+    noMessages: 'No messages yet.',
   },
 
   context: {

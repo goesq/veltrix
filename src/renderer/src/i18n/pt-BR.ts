@@ -66,6 +66,7 @@ export const ptBR = {
       orchestrator: 'Orquestrador',
       agents: (count: number) => `Agentes (${count})`,
       context: 'Contexto',
+      canvas: 'Canvas',
     },
     clearFinished: 'Limpar concluídos',
     restartTerminal: 'Reiniciar',
@@ -144,6 +145,28 @@ export const ptBR = {
     aider: 'Executa `aider --message`, sem commits automáticos.',
     custom: 'Qualquer CLI headless. Use {prompt} no comando.',
     customLabel: 'Comando próprio',
+  },
+
+  canvas: {
+    addAgent: 'Adicionar agente',
+    allOnCanvas: 'Todos os agentes já estão no canvas.',
+    edgeHint:
+      'Puxe da direita de um agente até outro para ele poder mandar mensagens. Clique numa linha para pausar; Delete remove.',
+    emptyTitle: 'Canvas vazio',
+    emptyDescription:
+      'Adicione agentes e conecte-os com linhas. Cada um roda ao vivo e pode mandar mensagens para quem está conectado.',
+    noAgents: 'Crie agentes na aba Agentes para colocá-los aqui.',
+    start: 'Iniciar',
+    stop: 'Parar',
+    stopped: 'Sessão parada. Ao iniciar, o agente lê as instruções dele e espera.',
+    removeFromCanvas: 'Tirar do canvas',
+    focusHint: 'Clique duplo para ver em 100%',
+    permission: 'Permissões da sessão',
+    permissionLocked: 'Pare a sessão para mudar as permissões',
+    permissionAsk: 'Perguntar',
+    permissionAcceptEdits: 'Aceitar edições',
+    messages: 'Mensagens',
+    noMessages: 'Nenhuma mensagem ainda.',
   },
 
   context: {

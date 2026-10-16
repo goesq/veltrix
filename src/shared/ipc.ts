@@ -2,9 +2,13 @@ import type { PlannerCheck, PlannerEngine } from './ai'
 import type {
   Agent,
   AgentInput,
+  CanvasMessage,
   ContextDocument,
+  LiveSessionData,
+  LiveSessionInfo,
   Platform,
   Project,
+  ProjectCanvas,
   ProjectContext,
   ProjectInput,
   Settings,
@@ -54,6 +58,19 @@ export const IpcChannel = {
   settingsGet: 'settings:get',
   settingsUpdate: 'settings:update',
   settingsSetApiKey: 'settings:set-api-key',
+
+  liveStart: 'live:start',
+  liveStop: 'live:stop',
+  liveWrite: 'live:write',
+  liveResize: 'live:resize',
+  liveBuffer: 'live:buffer',
+  liveList: 'live:list',
+  liveData: 'live:data',
+  liveExit: 'live:exit',
+  canvasSave: 'canvas:save',
+  canvasSetEdgePaused: 'canvas:set-edge-paused',
+  canvasMessages: 'canvas:messages',
+  canvasMessage: 'canvas:message',
 
   aiInstalledTools: 'ai:installed-tools',
   aiCheckPlanner: 'ai:check-planner',
@@ -108,6 +125,25 @@ export interface VeltrixApi {
     update(patch: SettingsPatch): Promise<Settings>
     /** Stores (or, with null, removes) the API key of an engine in the OS keychain. */
     setApiKey(engine: PlannerEngine, key: string | null): Promise<Settings>
+  }
+  /** Interactive agent sessions shown on a project's canvas. */
+  live: {
+    start(projectId: string, agentId: string, cols: number, rows: number): Promise<LiveSessionInfo>
+    stop(projectId: string, agentId: string): Promise<void>
+    write(projectId: string, agentId: string, data: string): void
+    resize(projectId: string, agentId: string, cols: number, rows: number): void
+    /** Output so far (bounded), to fill a terminal that mounts mid-session. */
+    buffer(projectId: string, agentId: string): Promise<string>
+    list(projectId: string): Promise<LiveSessionInfo[]>
+    onData(listener: (event: LiveSessionData) => void): Unsubscribe
+    onExit(listener: (info: LiveSessionInfo) => void): Unsubscribe
+  }
+  canvas: {
+    save(projectId: string, canvas: ProjectCanvas): Promise<Project>
+    setEdgePaused(projectId: string, edgeId: string, paused: boolean): Promise<void>
+    /** Recent messages between the project's live agents, oldest first. */
+    messages(projectId: string): Promise<CanvasMessage[]>
+    onMessage(listener: (message: CanvasMessage) => void): Unsubscribe
   }
   ai: {
     /** Which known CLIs (by executable name) are on the user's PATH. */

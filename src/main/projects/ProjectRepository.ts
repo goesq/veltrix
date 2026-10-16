@@ -5,6 +5,7 @@ import {
   type Agent,
   type AgentInput,
   type Project,
+  type ProjectCanvas,
   type ProjectContext,
   type ProjectInput,
 } from '@shared/types'
@@ -41,9 +42,13 @@ export class ProjectRepository {
   }
 
   get(projectId: string): Project {
-    const project = this.projects.get(projectId)
+    const project = this.find(projectId)
     if (!project) throw new Error(`Project ${projectId} not found.`)
     return project
+  }
+
+  find(projectId: string): Project | undefined {
+    return this.projects.get(projectId)
   }
 
   create(input: ProjectInput): Project {
@@ -104,6 +109,27 @@ export class ProjectRepository {
   removeAgent(projectId: string, agentId: string): void {
     this.update(projectId, (project) => {
       project.agents = project.agents.filter((agent) => agent.id !== agentId)
+      if (project.canvas) project.canvas = withoutAgent(project.canvas, agentId)
+    })
+  }
+
+  /** Replaces the canvas layout, keeping only nodes and lines of agents that exist. */
+  saveCanvas(projectId: string, canvas: ProjectCanvas): Project {
+    return this.update(projectId, (project) => {
+      const known = new Set(project.agents.map((agent) => agent.id))
+      project.canvas = {
+        nodes: canvas.nodes.filter((node) => known.has(node.agentId)),
+        edges: canvas.edges.filter(
+          (edge) => edge.from !== edge.to && known.has(edge.from) && known.has(edge.to),
+        ),
+      }
+    })
+  }
+
+  setEdgePaused(projectId: string, edgeId: string, paused: boolean): void {
+    this.update(projectId, (project) => {
+      const edge = project.canvas?.edges.find((e) => e.id === edgeId)
+      if (edge) edge.paused = paused
     })
   }
 
@@ -119,6 +145,13 @@ export class ProjectRepository {
     this.store.write({ projects: this.list() })
     const snapshot = structuredClone(project)
     for (const listener of this.listeners) listener(snapshot)
+  }
+}
+
+function withoutAgent(canvas: ProjectCanvas, agentId: string): ProjectCanvas {
+  return {
+    nodes: canvas.nodes.filter((node) => node.agentId !== agentId),
+    edges: canvas.edges.filter((edge) => edge.from !== agentId && edge.to !== agentId),
   }
 }
 

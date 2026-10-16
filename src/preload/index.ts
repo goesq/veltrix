@@ -65,6 +65,26 @@ const api: VeltrixApi = {
     update: (patch) => ipcRenderer.invoke(IpcChannel.settingsUpdate, patch),
     setApiKey: (engine, key) => ipcRenderer.invoke(IpcChannel.settingsSetApiKey, engine, key),
   },
+  live: {
+    start: (projectId, agentId, cols, rows) =>
+      ipcRenderer.invoke(IpcChannel.liveStart, projectId, agentId, cols, rows),
+    stop: (projectId, agentId) => ipcRenderer.invoke(IpcChannel.liveStop, projectId, agentId),
+    write: (projectId, agentId, data) =>
+      ipcRenderer.send(IpcChannel.liveWrite, projectId, agentId, data),
+    resize: (projectId, agentId, cols, rows) =>
+      ipcRenderer.send(IpcChannel.liveResize, projectId, agentId, cols, rows),
+    buffer: (projectId, agentId) => ipcRenderer.invoke(IpcChannel.liveBuffer, projectId, agentId),
+    list: (projectId) => ipcRenderer.invoke(IpcChannel.liveList, projectId),
+    onData: (listener) => subscribe(IpcChannel.liveData, listener),
+    onExit: (listener) => subscribe(IpcChannel.liveExit, listener),
+  },
+  canvas: {
+    save: (projectId, canvas) => ipcRenderer.invoke(IpcChannel.canvasSave, projectId, canvas),
+    setEdgePaused: (projectId, edgeId, paused) =>
+      ipcRenderer.invoke(IpcChannel.canvasSetEdgePaused, projectId, edgeId, paused),
+    messages: (projectId) => ipcRenderer.invoke(IpcChannel.canvasMessages, projectId),
+    onMessage: (listener) => subscribe(IpcChannel.canvasMessage, listener),
+  },
   ai: {
     installedTools: () => ipcRenderer.invoke(IpcChannel.aiInstalledTools),
     checkPlanner: (engine) => ipcRenderer.invoke(IpcChannel.aiCheckPlanner, engine),

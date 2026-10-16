@@ -6,6 +6,10 @@ import { resolveLocale } from '@shared/i18n'
 import { IpcChannel } from '@shared/ipc'
 import { loadLoginShellPath } from './infra/loginShellPath'
 import { registerIpc } from './ipc/registerIpc'
+import { LiveSessionService } from './live/LiveSessionService'
+import { MessageLog } from './live/MessageLog'
+import { MessageRouter } from './live/MessageRouter'
+import { SendServer } from './live/SendServer'
 import { AgentRunner } from './orchestrator/agents/AgentRunner'
 import { Orchestrator } from './orchestrator/Orchestrator'
 import { createPlanner } from './orchestrator/planning/createPlanner'
@@ -65,7 +69,30 @@ function bootstrap(): void {
   orchestrator.recoverInterruptedWork()
   projects.onChange((project) => send(IpcChannel.projectsChanged, project))
 
-  registerIpc({ terminals, shellProfiles, session, projects, orchestrator, settings })
+  // Live agents on the canvas: their sessions, and the channel they message each other through.
+  const messages = new MessageLog((message) => send(IpcChannel.canvasMessage, message))
+  const sendServer = new SendServer(dataDir)
+  const live = new LiveSessionService(sendServer, {
+    onData: (projectId, agentId, data) => send(IpcChannel.liveData, { projectId, agentId, data }),
+    onExit: (info) => send(IpcChannel.liveExit, info),
+  })
+  const router = new MessageRouter(projects, live, messages)
+  sendServer
+    .start((sender, request) => router.handle(sender, request))
+    .catch((error: unknown) => {
+      console.error('[live] Could not open the message channel for live agents.', error)
+    })
+
+  registerIpc({
+    terminals,
+    shellProfiles,
+    session,
+    projects,
+    orchestrator,
+    settings,
+    live,
+    messages,
+  })
 
   installAppMenu()
   // In development there is no app bundle yet, so give the dock the real icon.
@@ -78,6 +105,7 @@ function bootstrap(): void {
     // Terminal tabs live in the window; agents keep running in the background (macOS).
     mainWindow.on('closed', () => {
       terminals.killAll()
+      live.stopAll()
       mainWindow = null
     })
   }
@@ -96,6 +124,8 @@ function bootstrap(): void {
 
   app.on('before-quit', () => {
     terminals.killAll()
+    live.stopAll()
+    sendServer.stop()
     orchestrator.shutdown()
   })
 }

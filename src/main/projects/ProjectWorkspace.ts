@@ -122,6 +122,16 @@ export class ProjectWorkspace {
     await writeFile(join(this.project.path, this.briefRelativePath(taskId)), content, 'utf8')
   }
 
+  /**
+   * Writes the brief a live agent reads when its session starts; resolves with its path
+   * relative to the project, as given to the agent.
+   */
+  async writeLiveBrief(agentId: string, content: string): Promise<string> {
+    const path = `${PROJECT_WORKSPACE_DIR}/live/${agentId}.md`
+    await this.writeFile(join(this.project.path, path), content)
+    return path
+  }
+
   /** Opens (truncating) the output log of a task run. Writes through a stream keep chunk order. */
   async openLog(taskId: string): Promise<WriteStream> {
     await this.ensure()

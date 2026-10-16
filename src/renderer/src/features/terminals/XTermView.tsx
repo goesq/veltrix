@@ -18,13 +18,25 @@ interface XTermViewProps {
   onCwd?(cwd: string): void
   /** When it becomes true the terminal is refit and focused. */
   focused?: boolean
+  /**
+   * `webgl` (default) is fastest. `dom` keeps text sharp when the view is scaled (canvas
+   * zoom) and doesn't use one of the few WebGL contexts the browser allows.
+   */
+  renderer?: 'webgl' | 'dom'
 }
 
 /** Milliseconds a new terminal size must hold before the PTY is resized. */
 const PTY_RESIZE_DELAY = 60
 
 /** xterm.js wrapper that keeps itself sized to its container. */
-export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTermViewProps) {
+export function XTermView({
+  subscribe,
+  onInput,
+  onResize,
+  onCwd,
+  focused,
+  renderer = 'webgl',
+}: XTermViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -50,7 +62,7 @@ export function XTermView({ subscribe, onInput, onResize, onCwd, focused }: XTer
     terminal.loadAddon(fit)
     terminal.loadAddon(new WebLinksAddon((_event, uri) => window.open(uri)))
     terminal.open(container)
-    loadWebglRenderer(terminal)
+    if (renderer === 'webgl') loadWebglRenderer(terminal)
     terminal.attachCustomKeyEventHandler((event) => handleClipboardKeys(terminal, event))
 
     const input = terminal.onData((data) => callbacks.current.onInput?.(data))

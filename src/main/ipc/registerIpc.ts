@@ -5,6 +5,7 @@ import { IpcChannel } from '@shared/ipc'
 import type {
   AgentInput,
   ContextDocument,
+  ProjectCanvas,
   ProjectContext,
   ProjectInput,
   SettingsPatch,
@@ -13,6 +14,8 @@ import type {
 } from '@shared/types'
 import { isOnPath } from '../infra/shell'
 import { loadLoginShellPath } from '../infra/loginShellPath'
+import type { LiveSessionService } from '../live/LiveSessionService'
+import type { MessageLog } from '../live/MessageLog'
 import type { Orchestrator } from '../orchestrator/Orchestrator'
 import { createPlanner } from '../orchestrator/planning/createPlanner'
 import type { ProjectRepository } from '../projects/ProjectRepository'
@@ -29,6 +32,8 @@ export interface Services {
   projects: ProjectRepository
   orchestrator: Orchestrator
   settings: SettingsService
+  live: LiveSessionService
+  messages: MessageLog
 }
 
 /** Wires renderer requests to the services. This layer only translates; it holds no logic. */
@@ -39,6 +44,8 @@ export function registerIpc({
   projects,
   orchestrator,
   settings,
+  live,
+  messages,
 }: Services): void {
   ipcMain.handle(IpcChannel.terminalProfiles, () => shellProfiles.list())
   ipcMain.handle(IpcChannel.terminalCreate, (_e, options: TerminalCreateOptions) =>
@@ -63,15 +70,19 @@ export function registerIpc({
     await new ProjectWorkspace(project).ensure()
     return project
   })
-  ipcMain.handle(IpcChannel.projectsRemove, (_e, projectId: string) => projects.remove(projectId))
+  ipcMain.handle(IpcChannel.projectsRemove, (_e, projectId: string) => {
+    live.stopProject(projectId)
+    projects.remove(projectId)
+  })
   ipcMain.handle(
     IpcChannel.projectsSaveAgent,
     (_e, projectId: string, agent: AgentInput & { id?: string }) =>
       projects.saveAgent(projectId, agent),
   )
-  ipcMain.handle(IpcChannel.projectsRemoveAgent, (_e, projectId: string, agentId: string) =>
-    projects.removeAgent(projectId, agentId),
-  )
+  ipcMain.handle(IpcChannel.projectsRemoveAgent, (_e, projectId: string, agentId: string) => {
+    live.stop(projectId, agentId)
+    projects.removeAgent(projectId, agentId)
+  })
   ipcMain.handle(
     IpcChannel.projectsReadContext,
     async (_e, projectId: string, agentId?: string): Promise<ContextDocument> => {
@@ -122,6 +133,40 @@ export function registerIpc({
   ipcMain.handle(IpcChannel.orchestratorTaskLog, (_e, projectId: string, taskId: string) =>
     orchestrator.taskLog(projectId, taskId),
   )
+
+  ipcMain.handle(
+    IpcChannel.liveStart,
+    (_e, projectId: string, agentId: string, cols: number, rows: number) => {
+      const project = projects.get(projectId)
+      const agent = project.agents.find((a) => a.id === agentId)
+      if (!agent) throw new Error('This agent was removed from the project.')
+      return live.start(project, agent, cols, rows)
+    },
+  )
+  ipcMain.handle(IpcChannel.liveStop, (_e, projectId: string, agentId: string) =>
+    live.stop(projectId, agentId),
+  )
+  ipcMain.on(IpcChannel.liveWrite, (_e, projectId: string, agentId: string, data: string) =>
+    live.write(projectId, agentId, data),
+  )
+  ipcMain.on(
+    IpcChannel.liveResize,
+    (_e, projectId: string, agentId: string, cols: number, rows: number) =>
+      live.resize(projectId, agentId, cols, rows),
+  )
+  ipcMain.handle(IpcChannel.liveBuffer, (_e, projectId: string, agentId: string) =>
+    live.buffer(projectId, agentId),
+  )
+  ipcMain.handle(IpcChannel.liveList, (_e, projectId: string) => live.list(projectId))
+  ipcMain.handle(IpcChannel.canvasSave, (_e, projectId: string, canvas: ProjectCanvas) =>
+    projects.saveCanvas(projectId, canvas),
+  )
+  ipcMain.handle(
+    IpcChannel.canvasSetEdgePaused,
+    (_e, projectId: string, edgeId: string, paused: boolean) =>
+      projects.setEdgePaused(projectId, edgeId, paused),
+  )
+  ipcMain.handle(IpcChannel.canvasMessages, (_e, projectId: string) => messages.list(projectId))
 
   ipcMain.handle(IpcChannel.settingsGet, () => settings.get())
   ipcMain.handle(IpcChannel.settingsUpdate, (_e, patch: SettingsPatch) => settings.update(patch))

@@ -186,3 +186,58 @@
     animation: none;
   }
 }
+
+/* Agent canvas (React Flow), in the app's palette. */
+.react-flow.dark {
+  --xy-background-color: var(--color-app);
+  --xy-background-pattern-color: var(--color-line-strong);
+  --xy-edge-stroke: var(--color-muted);
+  --xy-edge-stroke-selected: var(--color-fg);
+  --xy-connectionline-stroke: var(--color-fg);
+  --xy-minimap-background-color: var(--color-surface);
+  --xy-minimap-mask-background-color: rgb(0 0 0 / 0.45);
+  --xy-minimap-node-background-color: var(--color-raised);
+  --xy-controls-button-background-color: var(--color-panel);
+  --xy-controls-button-background-color-hover: var(--color-raised);
+  --xy-controls-button-color: var(--color-muted);
+  --xy-controls-button-border-color: var(--color-line);
+  --xy-node-border-radius: 8px;
+}
+.react-flow .canvas-handle {
+  width: 10px;
+  height: 10px;
+  background: var(--color-raised);
+  border: 1px solid var(--color-line-strong);
+}
+.react-flow .canvas-handle:hover {
+  background: var(--color-fg);
+}
+.react-flow .canvas-edge-paused path {
+  stroke-dasharray: 4 4;
+  opacity: 0.45;
+}
+/* Node resizing: every edge is a wide, invisible grab area; corners show on hover. */
+.react-flow__resize-control.line.agent-resize-line {
+  border-color: transparent;
+}
+.react-flow__resize-control.line.agent-resize-line.left,
+.react-flow__resize-control.line.agent-resize-line.right {
+  width: 10px;
+}
+.react-flow__resize-control.line.agent-resize-line.top,
+.react-flow__resize-control.line.agent-resize-line.bottom {
+  height: 10px;
+}
+.react-flow__resize-control.handle.agent-resize-handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-raised);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.react-flow__node:hover .agent-resize-handle,
+.react-flow__node.selected .agent-resize-handle {
+  opacity: 1;
+}

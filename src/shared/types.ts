@@ -1,6 +1,6 @@
 // Domain types shared by the main process, preload bridge and renderer.
 
-import type { AgentTool, PlannerEngine } from './ai'
+import type { AgentTool, LivePermission, PlannerEngine } from './ai'
 import type { Locale } from './i18n'
 
 export type { PlannerEngine } from './ai'
@@ -74,6 +74,8 @@ export interface Agent {
    * relative to the project folder, or absolute. Missing means `.veltrix/agents/<id>.md`.
    */
   contextFile?: string
+  /** Permissions of this agent's live session on the canvas; missing means `ask`. */
+  livePermission?: LivePermission
   color: AgentColor
 }
 
@@ -125,6 +127,8 @@ export interface Project {
   tasks: Task[]
   /** How agents get the project's context; missing means one Veltrix file for everyone. */
   context?: ProjectContext
+  /** Layout of the live-agents canvas. */
+  canvas?: ProjectCanvas
   createdAt: number
 }
 
@@ -167,6 +171,59 @@ export const PROJECT_ICONS = [
   'rocket',
 ] as const
 export type ProjectIcon = (typeof PROJECT_ICONS)[number]
+
+// ── Canvas ───────────────────────────────────────────────────────────────────
+
+/** An agent placed on the canvas (one node per agent). Sizes are in canvas units. */
+export interface CanvasAgentNode {
+  agentId: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** A one-way link: the `from` agent may send messages to the `to` agent. */
+export interface CanvasEdge {
+  id: string
+  from: string
+  to: string
+  /** Paused by the user or by the loop guard; messages are refused while paused. */
+  paused?: boolean
+}
+
+export interface ProjectCanvas {
+  nodes: CanvasAgentNode[]
+  edges: CanvasEdge[]
+}
+
+export const EMPTY_CANVAS: ProjectCanvas = { nodes: [], edges: [] }
+
+/** A live agent session on the canvas. */
+export interface LiveSessionInfo {
+  projectId: string
+  agentId: string
+  status: 'running' | 'exited'
+  exitCode?: number
+}
+
+export interface LiveSessionData {
+  projectId: string
+  agentId: string
+  data: string
+}
+
+/** A message one live agent sent another (or tried to). */
+export interface CanvasMessage {
+  id: string
+  projectId: string
+  from: string
+  to: string
+  text: string
+  at: number
+  /** Why it wasn't delivered; missing when it was. */
+  error?: string
+}
 
 export interface ProjectInput {
   name: string

@@ -8,6 +8,7 @@ import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { loadSizes, resizePair, saveSizes } from '../../lib/layoutSizes'
+import { CanvasView } from '../canvas/CanvasView'
 import { AgentsPanel } from './AgentsPanel'
 import { ContextEditor } from './ContextEditor'
 import { GoalCard } from './GoalCard'
@@ -16,7 +17,7 @@ import { ProjectGlyph } from './ProjectGlyph'
 import { EditProjectDialog, RemoveProjectDialog } from './ProjectDialogs'
 import { ProjectTerminal } from './ProjectTerminal'
 
-type Tab = 'orchestrator' | 'agents' | 'context'
+type Tab = 'orchestrator' | 'agents' | 'context' | 'canvas'
 
 /** Orchestrator side and terminal side, as relative weights; shared by every project. */
 const SPLIT_ID = 'projects.split'
@@ -103,30 +104,42 @@ export function ProjectDetail({ project }: { project: Project }) {
         onClose={() => setDialog(null)}
       />
 
-      <div ref={split.containerRef} className="relative flex min-h-0 flex-1">
-        <div className="flex min-w-[240px] flex-col" style={{ flex: `${leftSize} 1 0px` }}>
-          <div className="flex items-center gap-1 border-b border-line px-6">
-            <TabButton active={tab === 'orchestrator'} onClick={() => setTab('orchestrator')}>
-              {t.projects.tabs.orchestrator}
-            </TabButton>
-            <TabButton active={tab === 'agents'} onClick={() => setTab('agents')}>
-              {t.projects.tabs.agents(project.agents.length)}
-            </TabButton>
-            <TabButton active={tab === 'context'} onClick={() => setTab('context')}>
-              {t.projects.tabs.context}
-            </TabButton>
-            {tab === 'orchestrator' && hasFinished && (
-              <Button
-                variant="ghost"
-                className="ml-auto h-7"
-                icon={<Eraser size={14} />}
-                onClick={() => void api.orchestrator.clearFinished(project.id)}
-              >
-                {t.projects.clearFinished}
-              </Button>
-            )}
-          </div>
+      <div className="flex items-center gap-1 border-b border-line px-6">
+        <TabButton active={tab === 'orchestrator'} onClick={() => setTab('orchestrator')}>
+          {t.projects.tabs.orchestrator}
+        </TabButton>
+        <TabButton active={tab === 'agents'} onClick={() => setTab('agents')}>
+          {t.projects.tabs.agents(project.agents.length)}
+        </TabButton>
+        <TabButton active={tab === 'context'} onClick={() => setTab('context')}>
+          {t.projects.tabs.context}
+        </TabButton>
+        <TabButton active={tab === 'canvas'} onClick={() => setTab('canvas')}>
+          {t.projects.tabs.canvas}
+        </TabButton>
+        {tab === 'orchestrator' && hasFinished && (
+          <Button
+            variant="ghost"
+            className="ml-auto h-7"
+            icon={<Eraser size={14} />}
+            onClick={() => void api.orchestrator.clearFinished(project.id)}
+          >
+            {t.projects.clearFinished}
+          </Button>
+        )}
+      </div>
 
+      {/* The canvas takes the whole width; the split stays mounted so the terminal keeps running. */}
+      {tab === 'canvas' && (
+        <div className="min-h-0 flex-1">
+          <CanvasView project={project} />
+        </div>
+      )}
+      <div
+        ref={split.containerRef}
+        className={cn('relative flex min-h-0 flex-1', tab === 'canvas' && 'hidden')}
+      >
+        <div className="flex min-w-[240px] flex-col" style={{ flex: `${leftSize} 1 0px` }}>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
             {tab === 'orchestrator' && (
               <>

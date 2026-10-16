@@ -158,48 +158,73 @@ export interface AgentToolSpec {
    * Defaults are conservative: agents may edit files in the project, but nothing more.
    */
   command: string
+  /**
+   * Interactive session on the canvas, by permission mode. `{prompt}` receives the opening
+   * instruction; without it, the instruction is pasted once the CLI has started.
+   */
+  live: Record<LivePermission, string>
 }
+
+/** How a live agent handles permissions: ask in its terminal, or accept file edits. */
+export type LivePermission = 'ask' | 'acceptEdits'
 
 export const AGENT_TOOLS = {
   claude: {
     name: 'Claude Code',
     binary: 'claude',
     command: 'claude -p {prompt} --permission-mode acceptEdits',
+    live: {
+      ask: 'claude {prompt}',
+      acceptEdits: 'claude --permission-mode acceptEdits {prompt}',
+    },
   },
   codex: {
     name: 'Codex CLI',
     binary: 'codex',
     command: 'codex exec --sandbox workspace-write {prompt}',
+    live: {
+      ask: 'codex {prompt}',
+      acceptEdits: 'codex --full-auto {prompt}',
+    },
   },
   gemini: {
     name: 'Gemini CLI',
     binary: 'gemini',
     command: 'gemini --approval-mode auto_edit -p {prompt}',
+    live: {
+      ask: 'gemini -i {prompt}',
+      acceptEdits: 'gemini --approval-mode auto_edit -i {prompt}',
+    },
   },
   cursor: {
     name: 'Cursor CLI',
     binary: 'cursor-agent',
     command: 'cursor-agent -p --force {prompt}',
+    live: { ask: 'cursor-agent {prompt}', acceptEdits: 'cursor-agent --force {prompt}' },
   },
   copilot: {
     name: 'GitHub Copilot CLI',
     binary: 'copilot',
     command: 'copilot -p {prompt} --allow-tool write',
+    live: { ask: 'copilot -i {prompt}', acceptEdits: 'copilot --allow-tool write -i {prompt}' },
   },
   qwen: {
     name: 'Qwen Code',
     binary: 'qwen',
     command: 'qwen --approval-mode auto-edit -p {prompt}',
+    live: { ask: 'qwen -i {prompt}', acceptEdits: 'qwen --approval-mode auto-edit -i {prompt}' },
   },
   opencode: {
     name: 'OpenCode',
     binary: 'opencode',
     command: 'opencode run {prompt}',
+    live: { ask: 'opencode', acceptEdits: 'opencode' },
   },
   aider: {
     name: 'Aider',
     binary: 'aider',
     command: 'aider --yes-always --no-auto-commits --message {prompt}',
+    live: { ask: 'aider --no-auto-commits', acceptEdits: 'aider --no-auto-commits --yes-always' },
   },
 } as const satisfies Record<string, AgentToolSpec>
 
