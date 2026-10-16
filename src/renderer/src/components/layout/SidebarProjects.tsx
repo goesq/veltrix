@@ -1,5 +1,6 @@
 import { FolderKanban, Plus } from 'lucide-react'
 import { addProject } from '../../features/projects/addProject'
+import { ProjectGlyph } from '../../features/projects/ProjectGlyph'
 import { useT } from '../../i18n'
 import { cn } from '../../lib/cn'
 import { useProjects } from '../../stores/projects'
@@ -42,11 +43,12 @@ export function SidebarProjects({ collapsed }: { collapsed: boolean }) {
             aria-label={project.name}
             onClick={() => openProject(project.id)}
             className={cn(
-              'flex size-9 items-center justify-center rounded-md text-xs font-medium uppercase transition-colors',
+              'relative flex size-9 items-center justify-center rounded-md transition-colors',
               tone,
             )}
           >
-            {project.name.slice(0, 2)}
+            <ProjectGlyph icon={project.icon} color={project.color} />
+            {running && <StatusDot size="md" pulse className="absolute right-1 top-1 bg-fg" />}
           </button>
         ) : (
           <button
@@ -59,8 +61,9 @@ export function SidebarProjects({ collapsed }: { collapsed: boolean }) {
               tone,
             )}
           >
-            <StatusDot size="md" className={running ? 'bg-fg' : 'bg-line-strong'} pulse={running} />
+            <ProjectGlyph icon={project.icon} color={project.color} />
             <span className="truncate">{project.name}</span>
+            {running && <StatusDot size="md" pulse className="ml-auto bg-fg" />}
           </button>
         )
       })}

@@ -78,6 +78,8 @@ export const ptBR = {
     folder: 'Pasta',
     folderHint: 'Os agentes e o terminal do projeto passam a trabalhar na pasta nova.',
     folderBusy: 'Aguarde as tarefas em execução terminarem para trocar a pasta.',
+    icon: 'Ícone',
+    color: 'Cor',
     removeTitle: 'Remover projeto',
     removeQuestion: (name: string) =>
       `Remover "${name}" do Veltrix? A pasta e os arquivos continuam no disco, só o projeto sai da lista.`,

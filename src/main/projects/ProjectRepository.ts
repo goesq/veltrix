@@ -1,5 +1,13 @@
 import { basename } from 'node:path'
-import type { Agent, AgentInput, Project, ProjectContext, ProjectInput } from '@shared/types'
+import {
+  AGENT_COLORS,
+  PROJECT_ICONS,
+  type Agent,
+  type AgentInput,
+  type Project,
+  type ProjectContext,
+  type ProjectInput,
+} from '@shared/types'
 import { JsonStore } from '../infra/JsonStore'
 import { newId } from '../infra/ids'
 
@@ -43,6 +51,9 @@ export class ProjectRepository {
       id: newId(),
       name: input.name.trim() || basename(input.path),
       path: input.path,
+      // Each new project starts with the next color, so they tell apart before any edit.
+      icon: validIcon(input.icon) ?? 'folder',
+      color: validColor(input.color) ?? AGENT_COLORS[this.projects.size % AGENT_COLORS.length],
       agents: [],
       goals: [],
       tasks: [],
@@ -61,6 +72,8 @@ export class ProjectRepository {
       }
       project.path = input.path
       project.name = input.name.trim() || basename(input.path)
+      project.icon = validIcon(input.icon) ?? project.icon
+      project.color = validColor(input.color) ?? project.color
     })
   }
 
@@ -107,4 +120,12 @@ export class ProjectRepository {
     const snapshot = structuredClone(project)
     for (const listener of this.listeners) listener(snapshot)
   }
+}
+
+function validIcon(icon: unknown): Project['icon'] {
+  return PROJECT_ICONS.find((known) => known === icon)
+}
+
+function validColor(color: unknown): Project['color'] {
+  return AGENT_COLORS.find((known) => known === color)
 }

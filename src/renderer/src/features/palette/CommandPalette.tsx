@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ChevronRight, FolderKanban, Plus, SquareTerminal } from 'lucide-react'
+import { ChevronRight, Plus, SquareTerminal } from 'lucide-react'
 import { useT } from '../../i18n'
 import { actionIds, actionLabel, actions } from '../../keybindings/actions'
 import { useBindings } from '../../keybindings/bindings'
@@ -9,6 +9,7 @@ import { useProjects } from '../../stores/projects'
 import { useShellProfiles } from '../../stores/shellProfiles'
 import { useTerminals, workspaceTabs } from '../../stores/terminals'
 import { useUi } from '../../stores/ui'
+import { ProjectGlyph } from '../projects/ProjectGlyph'
 
 interface Command {
   id: string
@@ -69,7 +70,7 @@ export function CommandPalette() {
         id: `project-${project.id}`,
         label: project.name,
         hint: t.palette.project,
-        icon: <FolderKanban size={15} />,
+        icon: <ProjectGlyph icon={project.icon} color={project.color} size={15} />,
         run: () => openProject(project.id),
       })),
     ],

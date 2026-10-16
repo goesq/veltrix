@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
-import type { Project } from '@shared/types'
+import {
+  AGENT_COLORS,
+  PROJECT_ICONS,
+  type AgentColor,
+  type Project,
+  type ProjectIcon,
+} from '@shared/types'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import { Field, Input } from '../../components/ui/Field'
 import { useT } from '../../i18n'
 import { api } from '../../lib/api'
+import { cn } from '../../lib/cn'
+import { tagDot } from '../../lib/colors'
 import { useProjects } from '../../stores/projects'
 import { useTerminals } from '../../stores/terminals'
+import { ProjectGlyph } from './ProjectGlyph'
 
 interface ProjectDialogProps {
   project: Project
@@ -23,14 +32,18 @@ export function EditProjectDialog({ project, open, busy, onClose }: ProjectDialo
   const { tabs, close, openForProject } = useTerminals()
   const [name, setName] = useState(project.name)
   const [path, setPath] = useState(project.path)
+  const [icon, setIcon] = useState<ProjectIcon>(project.icon ?? 'folder')
+  const [color, setColor] = useState<AgentColor | undefined>(project.color)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setName(project.name)
     setPath(project.path)
+    setIcon(project.icon ?? 'folder')
+    setColor(project.color)
     setError(null)
-  }, [open, project.name, project.path])
+  }, [open, project.name, project.path, project.icon, project.color])
 
   const pickFolder = async (): Promise<void> => {
     const folder = await api.dialog.pickDirectory()
@@ -39,7 +52,7 @@ export function EditProjectDialog({ project, open, busy, onClose }: ProjectDialo
 
   const save = async (): Promise<void> => {
     try {
-      const updated = await update(project.id, { name, path })
+      const updated = await update(project.id, { name, path, icon, color })
       // The project terminal lives in the old folder; reopen it in the new one.
       const terminal = tabs.find((tab) => tab.projectId === project.id)
       if (updated.path !== project.path && terminal) {
@@ -52,7 +65,11 @@ export function EditProjectDialog({ project, open, busy, onClose }: ProjectDialo
     }
   }
 
-  const changed = name.trim() !== project.name || path !== project.path
+  const changed =
+    name.trim() !== project.name ||
+    path !== project.path ||
+    icon !== (project.icon ?? 'folder') ||
+    color !== project.color
 
   return (
     <Dialog
@@ -88,6 +105,43 @@ export function EditProjectDialog({ project, open, busy, onClose }: ProjectDialo
           <Button disabled={busy} onClick={() => void pickFolder()}>
             {t.common.choose}
           </Button>
+        </div>
+      </Field>
+      <Field label={t.projectDialogs.icon}>
+        <div className="grid grid-cols-8 gap-1">
+          {PROJECT_ICONS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              aria-label={id}
+              aria-pressed={icon === id}
+              onClick={() => setIcon(id)}
+              className={cn(
+                'flex h-9 items-center justify-center rounded-md transition-colors',
+                icon === id ? 'bg-raised ring-1 ring-fg/60' : 'hover:bg-raised/60',
+              )}
+            >
+              <ProjectGlyph icon={id} color={icon === id ? color : undefined} />
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label={t.projectDialogs.color}>
+        <div className="flex gap-2">
+          {AGENT_COLORS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-label={option}
+              aria-pressed={color === option}
+              onClick={() => setColor(option)}
+              className={cn(
+                'size-6 rounded-full ring-offset-2 ring-offset-panel transition',
+                tagDot[option],
+                color === option ? 'ring-2 ring-fg/70' : 'opacity-60 hover:opacity-100',
+              )}
+            />
+          ))}
         </div>
       </Field>
       {error && <p className="text-xs text-danger">{error}</p>}

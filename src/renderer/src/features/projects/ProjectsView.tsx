@@ -2,6 +2,7 @@ import { FolderPlus } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusDot } from '../../components/ui/StatusDot'
+import { ProjectGlyph } from './ProjectGlyph'
 import { useT } from '../../i18n'
 import { useProjects } from '../../stores/projects'
 import { useUi } from '../../stores/ui'
@@ -50,8 +51,9 @@ export function ProjectsView() {
               className="flex flex-col gap-2 rounded-lg border border-line bg-panel p-4 text-left transition-colors hover:border-line-strong"
             >
               <div className="flex items-center gap-2">
-                <StatusDot className={running ? 'bg-fg' : 'bg-line-strong'} pulse={running > 0} />
+                <ProjectGlyph icon={project.icon} color={project.color} />
                 <span className="truncate font-medium">{project.name}</span>
+                {running > 0 && <StatusDot pulse className="ml-auto bg-fg" />}
               </div>
               <span className="truncate font-mono text-xs text-faint">{project.path}</span>
               <span className="text-xs text-muted">

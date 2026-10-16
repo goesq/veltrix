@@ -12,6 +12,7 @@ import { AgentsPanel } from './AgentsPanel'
 import { ContextEditor } from './ContextEditor'
 import { GoalCard } from './GoalCard'
 import { OrchestratorComposer } from './OrchestratorComposer'
+import { ProjectGlyph } from './ProjectGlyph'
 import { EditProjectDialog, RemoveProjectDialog } from './ProjectDialogs'
 import { ProjectTerminal } from './ProjectTerminal'
 
@@ -65,7 +66,10 @@ export function ProjectDetail({ project }: { project: Project }) {
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex items-center gap-4 border-b border-line px-6 py-3.5">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold">{project.name}</h1>
+          <h1 className="flex items-center gap-2 text-base font-semibold">
+            <ProjectGlyph icon={project.icon} color={project.color} />
+            <span className="truncate">{project.name}</span>
+          </h1>
           <p className="selectable truncate font-mono text-xs text-faint">{project.path}</p>
         </div>
         <Menu

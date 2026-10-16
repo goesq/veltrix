@@ -76,6 +76,8 @@ export const enUS: Messages = {
     folder: 'Folder',
     folderHint: "The agents and the project's terminal will work in the new folder.",
     folderBusy: 'Wait for the running tasks to finish to change the folder.',
+    icon: 'Icon',
+    color: 'Color',
     removeTitle: 'Remove project',
     removeQuestion: (name) =>
       `Remove "${name}" from Veltrix? The folder and its files stay on disk; only the project leaves the list.`,

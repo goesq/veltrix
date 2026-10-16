@@ -117,6 +117,9 @@ export interface Project {
   id: string
   name: string
   path: string
+  /** Shown beside the name in the sidebar, tinted with `color`. Missing means a folder. */
+  icon?: ProjectIcon
+  color?: AgentColor
   agents: Agent[]
   goals: Goal[]
   tasks: Task[]
@@ -145,9 +148,31 @@ export interface ContextDocument {
   exists: boolean
 }
 
+export const PROJECT_ICONS = [
+  'folder',
+  'server',
+  'globe',
+  'smartphone',
+  'database',
+  'terminal',
+  'bot',
+  'shopping-cart',
+  'book',
+  'palette',
+  'cloud',
+  'chart',
+  'lock',
+  'gamepad',
+  'flask',
+  'rocket',
+] as const
+export type ProjectIcon = (typeof PROJECT_ICONS)[number]
+
 export interface ProjectInput {
   name: string
   path: string
+  icon?: ProjectIcon
+  color?: AgentColor
 }
 
 export type AgentInput = Omit<Agent, 'id'>
