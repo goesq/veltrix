@@ -58,7 +58,11 @@ const api: VeltrixApi = {
   settings: {
     get: () => ipcRenderer.invoke(IpcChannel.settingsGet),
     update: (patch) => ipcRenderer.invoke(IpcChannel.settingsUpdate, patch),
-    setApiKey: (key) => ipcRenderer.invoke(IpcChannel.settingsSetApiKey, key),
+    setApiKey: (engine, key) => ipcRenderer.invoke(IpcChannel.settingsSetApiKey, engine, key),
+  },
+  ai: {
+    installedTools: () => ipcRenderer.invoke(IpcChannel.aiInstalledTools),
+    checkPlanner: (engine) => ipcRenderer.invoke(IpcChannel.aiCheckPlanner, engine),
   },
   dialog: {
     pickDirectory: () => ipcRenderer.invoke(IpcChannel.dialogPickDirectory),

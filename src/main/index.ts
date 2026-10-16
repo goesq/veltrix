@@ -8,9 +8,7 @@ import { loadLoginShellPath } from './infra/loginShellPath'
 import { registerIpc } from './ipc/registerIpc'
 import { AgentRunner } from './orchestrator/agents/AgentRunner'
 import { Orchestrator } from './orchestrator/Orchestrator'
-import { AnthropicApiPlanner } from './orchestrator/planning/AnthropicApiPlanner'
-import { ClaudeCliPlanner } from './orchestrator/planning/ClaudeCliPlanner'
-import type { Planner } from './orchestrator/planning/Planner'
+import { createPlanner } from './orchestrator/planning/createPlanner'
 import { ProjectRepository } from './projects/ProjectRepository'
 import { SettingsService } from './settings/SettingsService'
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smokeTest'
@@ -56,17 +54,14 @@ function bootstrap(): void {
     onExit: (event) => send(IpcChannel.terminalExit, event),
   })
 
-  const createPlanner = (): Planner => {
-    const { plannerEngine, plannerModel } = settings.get()
-    if (plannerEngine === 'claude-cli') return new ClaudeCliPlanner()
-    const apiKey = settings.apiKey()
-    if (!apiKey) throw new Error('Add an Anthropic API key in Settings to use the API planner.')
-    return new AnthropicApiPlanner(apiKey, plannerModel)
-  }
-
-  const orchestrator = new Orchestrator(projects, new AgentRunner(), createPlanner, {
-    onTaskOutput: (event) => send(IpcChannel.orchestratorTaskOutput, event),
-  })
+  const orchestrator = new Orchestrator(
+    projects,
+    new AgentRunner(),
+    () => createPlanner(settings, settings.get().plannerEngine),
+    {
+      onTaskOutput: (event) => send(IpcChannel.orchestratorTaskOutput, event),
+    },
+  )
   orchestrator.recoverInterruptedWork()
   projects.onChange((project) => send(IpcChannel.projectsChanged, project))
 

@@ -130,9 +130,14 @@ export const enUS: Messages = {
   },
 
   providers: {
-    claude: 'Runs `claude -p` in the project folder.',
-    codex: 'Runs `codex exec` with a sandbox that can write to the project.',
-    gemini: 'Runs `gemini -p`, approving edits only.',
+    claude: 'Runs `claude -p` in the project folder, approving file edits only.',
+    codex: 'Runs `codex exec` with a sandbox that can only write to the project.',
+    gemini: 'Runs `gemini -p`, approving file edits only.',
+    cursor: 'Runs `cursor-agent -p --force`, which can edit the project files.',
+    copilot: 'Runs `copilot -p` with only the write tool allowed.',
+    qwen: 'Runs `qwen -p`, approving file edits only.',
+    opencode: 'Runs `opencode run` with the permissions set in OpenCode.',
+    aider: 'Runs `aider --message`, without automatic commits.',
     custom: 'Any headless CLI. Use {prompt} in the command.',
     customLabel: 'Custom command',
   },
@@ -186,21 +191,70 @@ export const enUS: Messages = {
 
   settings: {
     title: 'Settings',
-    general: 'General',
+    sections: {
+      general: 'General',
+      orchestrator: 'Orchestrator',
+      apiKeys: 'API keys',
+      agents: 'Agents',
+      terminal: 'Terminal',
+      shortcuts: 'Shortcuts',
+    },
+    groups: {
+      app: 'App',
+      ai: 'Artificial intelligence',
+      workspace: 'Workspace',
+    },
+
+    generalDescription: 'App preferences.',
     language: 'Language',
     languageAuto: 'Automatic (system language)',
-    orchestrator: 'Orchestrator',
+
     orchestratorDescription:
-      'The planner: it takes the goal, splits it into tasks and picks the agent for each one.',
-    claudeCli: 'Uses your installed `claude` and its current login. No API key needed.',
-    anthropicApi: 'Anthropic API',
-    anthropicApiDescription:
-      "Calls the API directly with your key, stored in the system's secure storage.",
+      'The orchestrator is the planner: it takes the goal, splits it into tasks and picks the agent for each one. Choose which AI plays that part.',
+    engineGroups: {
+      cli: 'Subscription via CLI',
+      cloud: 'Cloud API',
+      local: 'Local or self-hosted',
+    },
+    engineGroupHints: {
+      cli: 'Uses the installed CLI and the login you already have there. No key needed.',
+      cloud: "Calls the provider's API with your key. Billed by usage on the provider's account.",
+      local: 'Models running on this machine or on a server compatible with the OpenAI API.',
+    },
+    openAiCompatible: 'OpenAI-compatible',
+    inUse: 'In use',
+    installed: 'Installed',
+    notInstalled: 'Not found',
+    keySaved: 'Key saved',
+    keyMissing: 'No key',
+    engineSetup: (name) => `Set up ${name}`,
     model: 'Model',
+    modelCliHint: "Leave empty to use the CLI's own default model.",
+    modelDefault: (model) => `Leave empty to use ${model}.`,
+    baseUrl: 'API address',
+    baseUrlHint: 'Base URL up to the version, without /chat/completions.',
+    installHint: (binary) =>
+      `"${binary}" was not found on PATH. Install the CLI and sign in to it once from a terminal.`,
+    test: 'Test connection',
+    testing: 'Testing…',
+    testOk: 'Connected',
+
+    apiKeysDescription:
+      "AI provider keys, encrypted in the system's secure storage. They are only sent to the provider itself.",
     apiKey: 'API key',
+    apiKeyOptional: 'API key (optional)',
     apiKeySaved: 'A key is saved.',
     apiKeyMissing: 'No key saved.',
-    terminal: 'Terminal',
+    getKeyAt: (site) => `Create a key at ${site}.`,
+
+    agentsDescription:
+      'Agents carry out the tasks the orchestrator hands out. Each project picks its own; these are the tools available and the command Veltrix runs for each one.',
+    agentsHowTo: 'To add an agent, open a project and use the Agents tab.',
+    customToolHint:
+      'Any other CLI that runs without interaction works too: pick "Custom command" when creating the agent.',
+    refresh: 'Check again',
+
+    terminalDescription: 'How terminals open and look.',
     defaultShell: 'Default shell',
     defaultShellHint: 'Used by the + button and the new-terminal shortcut.',
     startFolder: 'Start folder',
@@ -216,6 +270,7 @@ export const enUS: Messages = {
     terminalNote:
       'Applies to terminals opened after the change. Command Prompt (cmd) has no banner or branch.',
     fontSize: 'Font size',
-    shortcuts: 'Shortcuts',
+
+    shortcutsDescription: 'Keyboard shortcuts for each action.',
   },
 }

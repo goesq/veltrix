@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from 'electron'
+import { KNOWN_BINARIES, type PlannerCheck, type PlannerEngine } from '@shared/ai'
 import { IpcChannel } from '@shared/ipc'
 import type {
   AgentInput,
@@ -7,7 +8,10 @@ import type {
   TerminalCreateOptions,
   TerminalSession,
 } from '@shared/types'
+import { isOnPath } from '../infra/shell'
+import { loadLoginShellPath } from '../infra/loginShellPath'
 import type { Orchestrator } from '../orchestrator/Orchestrator'
+import { createPlanner } from '../orchestrator/planning/createPlanner'
 import type { ProjectRepository } from '../projects/ProjectRepository'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
 import type { SettingsService } from '../settings/SettingsService'
@@ -90,7 +94,24 @@ export function registerIpc({
 
   ipcMain.handle(IpcChannel.settingsGet, () => settings.get())
   ipcMain.handle(IpcChannel.settingsUpdate, (_e, patch: SettingsPatch) => settings.update(patch))
-  ipcMain.handle(IpcChannel.settingsSetApiKey, (_e, key: string | null) => settings.setApiKey(key))
+  ipcMain.handle(IpcChannel.settingsSetApiKey, (_e, engine: PlannerEngine, key: string | null) =>
+    settings.setApiKey(engine, key),
+  )
+
+  ipcMain.handle(IpcChannel.aiInstalledTools, async () => {
+    await loadLoginShellPath()
+    return Object.fromEntries(KNOWN_BINARIES.map((binary) => [binary, isOnPath(binary)]))
+  })
+  ipcMain.handle(
+    IpcChannel.aiCheckPlanner,
+    async (_e, engine: PlannerEngine): Promise<PlannerCheck> => {
+      try {
+        return { ok: true, detail: await createPlanner(settings, engine).check() }
+      } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : String(error) }
+      }
+    },
+  )
 
   ipcMain.handle(IpcChannel.dialogPickDirectory, async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender)

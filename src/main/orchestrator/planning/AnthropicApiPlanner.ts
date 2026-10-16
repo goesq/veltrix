@@ -32,4 +32,9 @@ export class AnthropicApiPlanner implements Planner {
     if (!response.parsed_output) throw new Error('The planner returned an invalid plan.')
     return validatePlan(response.parsed_output, request.project)
   }
+
+  async check(): Promise<string | undefined> {
+    await this.client.models.retrieve(this.model)
+    return this.model
+  }
 }

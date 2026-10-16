@@ -17,6 +17,14 @@ export function findOnPath(executable: string): string | undefined {
   return dirs.map((dir) => join(dir, executable)).find((candidate) => existsSync(candidate))
 }
 
+/** Whether a command (`claude`, `codex`...) resolves on PATH, including Windows' `.cmd` shims. */
+export function isOnPath(command: string): boolean {
+  const extensions = isWindows
+    ? (process.env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)
+    : ['']
+  return extensions.some((extension) => findOnPath(command + extension) !== undefined)
+}
+
 /** Absolute path of Windows PowerShell, which ships with every supported Windows version. */
 export function windowsPowerShellPath(): string {
   const systemRoot = process.env.SystemRoot ?? 'C:\\Windows'

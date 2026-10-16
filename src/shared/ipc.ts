@@ -1,3 +1,4 @@
+import type { PlannerCheck, PlannerEngine } from './ai'
 import type {
   Agent,
   AgentInput,
@@ -50,6 +51,9 @@ export const IpcChannel = {
   settingsUpdate: 'settings:update',
   settingsSetApiKey: 'settings:set-api-key',
 
+  aiInstalledTools: 'ai:installed-tools',
+  aiCheckPlanner: 'ai:check-planner',
+
   dialogPickDirectory: 'dialog:pick-directory',
 } as const
 
@@ -94,7 +98,14 @@ export interface VeltrixApi {
   settings: {
     get(): Promise<Settings>
     update(patch: SettingsPatch): Promise<Settings>
-    setApiKey(key: string | null): Promise<Settings>
+    /** Stores (or, with null, removes) the API key of an engine in the OS keychain. */
+    setApiKey(engine: PlannerEngine, key: string | null): Promise<Settings>
+  }
+  ai: {
+    /** Which known CLIs (by executable name) are on the user's PATH. */
+    installedTools(): Promise<Record<string, boolean>>
+    /** Reaches the engine with the current settings, without planning anything. */
+    checkPlanner(engine: PlannerEngine): Promise<PlannerCheck>
   }
   dialog: {
     pickDirectory(): Promise<string | null>

@@ -30,6 +30,24 @@ export interface PlanRequest {
 /** Turns a high-level goal into tasks routed to the project's agents. */
 export interface Planner {
   plan(request: PlanRequest): Promise<Plan>
+  /** Confirms the planner can be reached; resolves with a detail to show (a version). */
+  check(): Promise<string | undefined>
+}
+
+/** Parses a plan out of a free-text reply that may still contain code fences or prose. */
+export function parsePlanText(text: string, project: Project): Plan {
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start < 0 || end <= start) throw new Error('The planner did not return JSON.')
+  let json: unknown
+  try {
+    json = JSON.parse(text.slice(start, end + 1))
+  } catch {
+    throw new Error('The planner returned malformed JSON.')
+  }
+  const parsed = PlanSchema.safeParse(json)
+  if (!parsed.success) throw new Error('The planner returned a plan in the wrong shape.')
+  return validatePlan(parsed.data, project)
 }
 
 /** Validates the plan against the project: known agents, known dependency keys, no cycles. */

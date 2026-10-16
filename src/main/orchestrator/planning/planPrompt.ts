@@ -1,4 +1,5 @@
-import type { PlanRequest } from './Planner'
+import { z } from 'zod/v4'
+import { PlanSchema, type PlanRequest } from './Planner'
 
 export const PLANNER_SYSTEM_PROMPT = `You are the orchestrator of a team of autonomous coding agents working in one repository.
 Break the user's goal into the smallest set of concrete tasks that fully achieves it, and assign each task to the agent whose role fits best.
@@ -28,4 +29,15 @@ ${agents}
 <goal>
 ${goal.trim()}
 </goal>`
+}
+
+/**
+ * Single prompt for planners without schema-constrained output (CLIs, OpenAI-compatible
+ * APIs): the instructions, the request and the JSON Schema the reply must follow.
+ */
+export function buildJsonPlannerPrompt(request: PlanRequest): string {
+  return `${buildPlannerPrompt(request)}
+
+Respond with only a JSON object matching this JSON Schema, with no prose and no code fences:
+${JSON.stringify(z.toJSONSchema(PlanSchema))}`
 }

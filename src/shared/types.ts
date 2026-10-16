@@ -1,6 +1,9 @@
 // Domain types shared by the main process, preload bridge and renderer.
 
+import type { AgentTool, PlannerEngine } from './ai'
 import type { Locale } from './i18n'
+
+export type { PlannerEngine } from './ai'
 
 export type Platform = 'darwin' | 'win32' | 'linux'
 
@@ -56,7 +59,7 @@ export interface TerminalExit {
 
 // ── Agents ───────────────────────────────────────────────────────────────────
 
-export type AgentProvider = 'claude' | 'codex' | 'gemini' | 'custom'
+export type AgentProvider = AgentTool | 'custom'
 
 export interface Agent {
   id: string
@@ -124,14 +127,14 @@ export type AgentInput = Omit<Agent, 'id'>
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 
-export type PlannerEngine = 'claude-cli' | 'anthropic-api'
-
 export interface Settings {
   plannerEngine: PlannerEngine
-  /** Model used when plannerEngine is `anthropic-api`. */
-  plannerModel: string
-  /** Whether an API key is stored (the key itself never leaves the main process). */
-  hasApiKey: boolean
+  /** Model per engine; missing or empty uses the engine's default (the CLI's own, for CLIs). */
+  plannerModels: Partial<Record<PlannerEngine, string>>
+  /** Endpoint overrides for local engines (Ollama, OpenAI-compatible servers). */
+  plannerBaseUrls: Partial<Record<PlannerEngine, string>>
+  /** Engines with a stored API key (the keys themselves never leave the main process). */
+  apiKeys: PlannerEngine[]
   terminalFontSize: number
   /** Shell profile for new terminals; null means the platform default. */
   defaultShellProfileId: string | null
@@ -147,7 +150,7 @@ export interface Settings {
   keybindings: Record<string, string | null>
 }
 
-export type SettingsPatch = Partial<Omit<Settings, 'hasApiKey'>>
+export type SettingsPatch = Partial<Omit<Settings, 'apiKeys'>>
 
 // ── Events pushed from main to renderer ──────────────────────────────────────
 

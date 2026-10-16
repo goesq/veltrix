@@ -132,9 +132,14 @@ export const ptBR = {
   },
 
   providers: {
-    claude: 'Executa `claude -p` no diretório do projeto.',
-    codex: 'Executa `codex exec` com sandbox de escrita no projeto.',
-    gemini: 'Executa `gemini -p` aprovando apenas edições.',
+    claude: 'Executa `claude -p` na pasta do projeto, aprovando só edições de arquivo.',
+    codex: 'Executa `codex exec` com sandbox que só escreve no projeto.',
+    gemini: 'Executa `gemini -p`, aprovando só edições de arquivo.',
+    cursor: 'Executa `cursor-agent -p --force`, que pode editar os arquivos do projeto.',
+    copilot: 'Executa `copilot -p` liberando só a ferramenta de escrita.',
+    qwen: 'Executa `qwen -p`, aprovando só edições de arquivo.',
+    opencode: 'Executa `opencode run` com as permissões configuradas no OpenCode.',
+    aider: 'Executa `aider --message`, sem commits automáticos.',
     custom: 'Qualquer CLI headless. Use {prompt} no comando.',
     customLabel: 'Comando próprio',
   },
@@ -187,21 +192,70 @@ export const ptBR = {
 
   settings: {
     title: 'Configurações',
-    general: 'Geral',
+    sections: {
+      general: 'Geral',
+      orchestrator: 'Orquestrador',
+      apiKeys: 'Chaves de API',
+      agents: 'Agentes',
+      terminal: 'Terminal',
+      shortcuts: 'Atalhos',
+    },
+    groups: {
+      app: 'Aplicativo',
+      ai: 'Inteligência artificial',
+      workspace: 'Área de trabalho',
+    },
+
+    generalDescription: 'Preferências do aplicativo.',
     language: 'Idioma',
     languageAuto: 'Automático (idioma do sistema)',
-    orchestrator: 'Orquestrador',
+
     orchestratorDescription:
-      'Quem planeja: recebe o objetivo, divide em tarefas e escolhe o agente de cada uma.',
-    claudeCli: 'Usa o `claude` instalado e o seu login atual. Não precisa de chave de API.',
-    anthropicApi: 'API da Anthropic',
-    anthropicApiDescription:
-      'Chama a API diretamente com a sua chave, guardada no cofre do sistema.',
+      'O orquestrador é quem planeja: recebe o objetivo, divide em tarefas e escolhe o agente de cada uma. Escolha qual IA faz esse papel.',
+    engineGroups: {
+      cli: 'Assinatura via CLI',
+      cloud: 'API na nuvem',
+      local: 'Local ou servidor próprio',
+    },
+    engineGroupHints: {
+      cli: 'Usa o CLI instalado e o login que você já tem nele. Não precisa de chave.',
+      cloud: 'Chama a API do provedor com a sua chave. Cobrado por uso na conta do provedor.',
+      local: 'Modelos rodando nesta máquina ou em um servidor compatível com a API da OpenAI.',
+    },
+    openAiCompatible: 'Compatível com OpenAI',
+    inUse: 'Em uso',
+    installed: 'Instalado',
+    notInstalled: 'Não encontrado',
+    keySaved: 'Chave salva',
+    keyMissing: 'Sem chave',
+    engineSetup: (name: string) => `Configurar ${name}`,
     model: 'Modelo',
+    modelCliHint: 'Vazio usa o modelo padrão do próprio CLI.',
+    modelDefault: (model: string) => `Vazio usa ${model}.`,
+    baseUrl: 'Endereço da API',
+    baseUrlHint: 'URL base até a versão, sem /chat/completions.',
+    installHint: (binary: string) =>
+      `"${binary}" não foi encontrado no PATH. Instale o CLI e faça login nele uma vez pelo terminal.`,
+    test: 'Testar conexão',
+    testing: 'Testando…',
+    testOk: 'Conectado',
+
+    apiKeysDescription:
+      'Chaves dos provedores de IA, criptografadas no cofre do sistema. Só são enviadas ao próprio provedor.',
     apiKey: 'Chave de API',
+    apiKeyOptional: 'Chave de API (opcional)',
     apiKeySaved: 'Uma chave está salva.',
     apiKeyMissing: 'Nenhuma chave salva.',
-    terminal: 'Terminal',
+    getKeyAt: (site: string) => `Crie uma chave em ${site}.`,
+
+    agentsDescription:
+      'Os agentes executam as tarefas que o orquestrador distribui. Cada projeto escolhe os seus; aqui estão as ferramentas disponíveis e o comando que o Veltrix roda para cada uma.',
+    agentsHowTo: 'Para adicionar um agente, abra um projeto e use a aba Agentes.',
+    customToolHint:
+      'Qualquer outro CLI que rode sem interação também serve: escolha "Comando próprio" ao criar o agente.',
+    refresh: 'Verificar de novo',
+
+    terminalDescription: 'Como os terminais abrem e aparecem.',
     defaultShell: 'Shell padrão',
     defaultShellHint: 'Usado pelo botão + e pelo atalho de novo terminal.',
     startFolder: 'Pasta inicial',
@@ -216,7 +270,8 @@ export const ptBR = {
     terminalNote:
       'Valem para os terminais abertos depois da mudança. O Prompt de comando (cmd) não tem banner nem branch.',
     fontSize: 'Tamanho da fonte',
-    shortcuts: 'Atalhos',
+
+    shortcutsDescription: 'Atalhos de teclado de cada ação.',
   },
 }
 
