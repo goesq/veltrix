@@ -101,18 +101,30 @@ top, or press its key while nothing is being typed:
 | Note                           | `N`   |
 | Checklist                      | `C`   |
 | Text label                     | `L`   |
+| Browser portal                 | `P`   |
+| Next / previous node           | `]` `[` |
+| Next agent waiting for you     | `W`   |
+| Enlarge the selected node      | `Enter` |
 
 Hold `Space` or use the middle mouse button to pan with any tool, scroll to move around and
 pinch (or `Ctrl`/`⌘` + scroll) to zoom. Double-click a node's header to enlarge it into a
 panel; `Esc` puts it back. `Delete` removes the selected notes, labels and lines,
 `Ctrl`/`⌘` + `Z` undoes (deleted notes come back from `.veltrix/notes/.trash/`), `Ctrl`/`⌘` +
 `Shift` + `Z` redoes and `Ctrl`/`⌘` + `D` duplicates. With several items selected, the bar
-also arranges them in a grid.
+also arranges them in a grid, aligns them or spaces them evenly.
 
 - **Manager agents** (the crown in an agent's header) assemble their own team: from its
   terminal, a manager runs `veltrix-send --recruit <name> "<role>"` and the new agent appears
   below it, linked both ways, and starts at once; `--dismiss <name>` removes it when its work
   is done.
+- **Browser portals** (`P`) put a web page on the canvas. An agent linked to one drives it
+  from its terminal: `veltrix-send --browser open <url>`, `read` (the page's text with its
+  links, buttons and fields numbered), `click`, `type`, `screenshot` and `back`. Portals run
+  isolated from the app (no Node, no preload, their own session) and only load web pages.
+- **Own workspace**: in an agent's settings, "Own workspace (git worktree)" gives it a branch
+  (`veltrix/<name>`) and a separate copy of the project to work in, so agents running at the
+  same time never touch the same files. Turning it off removes the copy, never with
+  uncommitted changes in it; the branch stays.
 - **Agents waiting for you** (quiet after printing something since you last typed to them)
   get an amber "Waiting for you" in their header, and the Canvas tab counts them.
 - **Lines between agents** let the first one message the second with `veltrix-send`. Click a

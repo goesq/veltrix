@@ -115,6 +115,10 @@ The bar at the top holds the tools. Press a tool's key while you aren't typing:
 | Note       | `N` | Click where the note goes                                        |
 | Checklist  | `C` | A note that starts as a checklist                                |
 | Text       | `L` | A label, to title an area or jot an idea down                    |
+| Portal     | `P` | A web page agents can drive                                      |
+
+Move between nodes with `]` and `[`, jump to the next agent waiting for you with `W`, and
+press `Enter` to enlarge the selected node.
 
 To move around with any tool, scroll (or swipe on a trackpad), hold `Space` and drag, or
 drag with the middle mouse button. Pinch, or hold `Ctrl` / `⌘` and scroll, to zoom.
@@ -124,7 +128,8 @@ canvas (the agent stays in the project).
 Made a mistake? `Ctrl` / `⌘` + `Z` undoes any change on the canvas, including a deleted note:
 its file waits in `.veltrix/notes/.trash/` and comes back. `Ctrl` / `⌘` + `Shift` + `Z` redoes.
 Select a few items (`Ctrl` / `⌘` + click, or drag a box around them) and the bar offers to
-duplicate them (`Ctrl` / `⌘` + `D`), arrange them in a grid or remove them.
+duplicate them (`Ctrl` / `⌘` + `D`), arrange them in a grid, align them or space them evenly,
+or remove them.
 
 ### Agents
 
@@ -183,6 +188,31 @@ You don't type these commands: ask the manager in plain words.
 You lead this feature. Recruit a backend and a frontend agent, split the login sprint
 checklist between them, and dismiss them when every item is ticked.
 ```
+
+### Browser portals
+
+Press `P` and click to add a portal: a web page on the canvas, with an address bar, back,
+forward and reload. Link an agent to it and the agent can drive the page from its terminal:
+
+```text
+veltrix-send --browser open localhost:3000
+veltrix-send --browser read           # the text, plus numbered links, buttons and fields
+veltrix-send --browser type 2 "hello"  # into field 2; end with \n to press Enter
+veltrix-send --browser click "Sign in"
+veltrix-send --browser screenshot     # saves a PNG the agent can open
+```
+
+Ask in plain words, for example: *"open the app in the portal, sign up with a test user and
+tell me what breaks"*. Portals are isolated from the app and only load web pages; agents are
+told never to type passwords or payment details.
+
+### Agents in their own workspace
+
+Two agents editing the same files at the same time step on each other. In the **Agents** tab,
+edit an agent and turn on **Own workspace (git worktree)**: it gets a branch of its own
+(`veltrix/<name>`) and a separate copy of the project, and from then on works there, live and
+in orchestrator tasks. Its node shows the branch. Review and merge its branch like any other.
+Turning it off removes the copy (refused while it has uncommitted changes); the branch stays.
 
 ### Notes and brainstorming
 
