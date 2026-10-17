@@ -20,12 +20,32 @@ function SymbolShapes() {
   return (
     <>
       <g stroke="currentColor" strokeWidth={LINK_WIDTH} strokeLinecap="round">
-        <line className="logo-link" pathLength={1} x1={left.cx} y1={left.cy} x2={hub.cx} y2={hub.cy} />
-        <line className="logo-link logo-link-b" pathLength={1} x1={right.cx} y1={right.cy} x2={hub.cx} y2={hub.cy} />
+        <line
+          className="logo-link"
+          pathLength={1}
+          x1={left.cx}
+          y1={left.cy}
+          x2={hub.cx}
+          y2={hub.cy}
+        />
+        <line
+          className="logo-link logo-link-b"
+          pathLength={1}
+          x1={right.cx}
+          y1={right.cy}
+          x2={hub.cx}
+          y2={hub.cy}
+        />
       </g>
       <circle className="logo-node" {...left} />
       <circle className="logo-node logo-node-b" {...right} />
-      <circle className="logo-hub-ring" {...hub} fill="none" stroke="currentColor" strokeWidth={1.2} />
+      <circle
+        className="logo-hub-ring"
+        {...hub}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.2}
+      />
       <circle className="logo-hub" {...hub} />
     </>
   )

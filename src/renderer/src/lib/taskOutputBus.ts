@@ -21,7 +21,12 @@ class TaskOutputBus {
   }
 
   /** Attaches to one run of a task (a retry is a new run with a new start time). */
-  attach(projectId: string, taskId: string, runStartedAt: number, handler: DataHandler): () => void {
+  attach(
+    projectId: string,
+    taskId: string,
+    runStartedAt: number,
+    handler: DataHandler,
+  ): () => void {
     const key = runKey(taskId, runStartedAt)
     const handlers = this.handlers.get(key) ?? new Set()
     handlers.add(handler)

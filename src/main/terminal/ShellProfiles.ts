@@ -65,7 +65,13 @@ async function detectWindows(): Promise<ShellProfileSpec[]> {
     findOnPath('pwsh.exe') ??
     [join(programFiles, 'PowerShell', '7', 'pwsh.exe')].find((path) => existsSync(path))
   if (pwsh) {
-    profiles.push({ id: 'pwsh', name: 'PowerShell 7', kind: 'powershell', file: pwsh, baseArgs: [] })
+    profiles.push({
+      id: 'pwsh',
+      name: 'PowerShell 7',
+      kind: 'powershell',
+      file: pwsh,
+      baseArgs: [],
+    })
   }
 
   profiles.push({

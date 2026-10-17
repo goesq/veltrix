@@ -71,7 +71,10 @@ export class AutoTitle {
     const [program, ...args] = text.split(' ')
     const name = program.replace(/^.*[\\/]/, '').replace(/\.(exe|cmd|ps1)$/i, '')
     if (AGENT_CLIS.has(name.toLowerCase())) {
-      const prompt = args.filter((arg) => !arg.startsWith('-')).join(' ').replace(/^["']|["']$/g, '')
+      const prompt = args
+        .filter((arg) => !arg.startsWith('-'))
+        .join(' ')
+        .replace(/^["']|["']$/g, '')
       if (prompt) {
         this.stage = { kind: 'done' }
         return `${name}: ${shorten(prompt)}`

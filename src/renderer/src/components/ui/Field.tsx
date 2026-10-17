@@ -1,4 +1,9 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react'
 import { cn } from '../../lib/cn'
 
 const control =
@@ -11,11 +16,12 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   },
 )
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function Textarea({ className, ...rest }, ref) {
-    return <textarea ref={ref} className={cn(control, 'resize-none py-2', className)} {...rest} />
-  },
-)
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function Textarea({ className, ...rest }, ref) {
+  return <textarea ref={ref} className={cn(control, 'resize-none py-2', className)} {...rest} />
+})
 
 interface FieldProps {
   label: string
