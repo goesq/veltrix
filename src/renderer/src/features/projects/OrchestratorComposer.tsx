@@ -9,16 +9,18 @@ interface OrchestratorComposerProps {
   project: Project
 }
 
-/** Where the user describes a goal; the orchestrator plans it and distributes the tasks. */
+/**
+ * Where the user describes a goal; the orchestrator plans it, adds the agents it needs and
+ * distributes the tasks.
+ */
 export function OrchestratorComposer({ project }: OrchestratorComposerProps) {
   const [prompt, setPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const noAgents = project.agents.length === 0
   const t = useT()
 
   const submit = async (): Promise<void> => {
-    if (!prompt.trim() || noAgents || submitting) return
+    if (!prompt.trim() || submitting) return
     setSubmitting(true)
     setError(null)
     const text = prompt
@@ -38,12 +40,11 @@ export function OrchestratorComposer({ project }: OrchestratorComposerProps) {
       <textarea
         rows={3}
         value={prompt}
-        disabled={noAgents}
         onChange={(e) => setPrompt(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit()
         }}
-        placeholder={noAgents ? t.orchestrator.needsAgent : t.orchestrator.placeholder}
+        placeholder={t.orchestrator.placeholder}
         className="block w-full resize-none bg-transparent px-4 pb-2 pt-3 text-[13px] placeholder:text-faint focus:outline-none disabled:opacity-50"
       />
       <div className="flex items-center justify-between gap-3 px-3 pb-3">
@@ -51,7 +52,7 @@ export function OrchestratorComposer({ project }: OrchestratorComposerProps) {
         <Button
           variant="primary"
           icon={<ArrowUp size={14} />}
-          disabled={!prompt.trim() || noAgents || submitting}
+          disabled={!prompt.trim() || submitting}
           onClick={() => void submit()}
           title={isMac ? '⌘ Enter' : 'Ctrl Enter'}
         >

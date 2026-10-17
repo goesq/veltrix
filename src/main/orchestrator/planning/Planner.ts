@@ -1,21 +1,34 @@
 import { z } from 'zod/v4'
+import { AGENT_TOOL_IDS, type AgentTool } from '@shared/ai'
 import type { Project } from '@shared/types'
 
 export const PlanSchema = z.object({
   summary: z.string().describe('One short paragraph explaining the approach.'),
-  tasks: z
+  newAgents: z
     .array(
       z.object({
-        key: z.string().describe('Short unique identifier, e.g. "t1".'),
-        title: z.string(),
-        description: z
-          .string()
-          .describe('Self-contained instructions: what to do, where, and how to verify it.'),
-        agentId: z.string().describe('Id of the agent that will execute the task.'),
-        dependsOn: z.array(z.string()).describe('Keys of tasks that must finish first.'),
+        key: z.string().describe('Short unique identifier tasks use as agentId, e.g. "a1".'),
+        name: z.string().describe('Short name, e.g. "frontend".'),
+        role: z.string().describe('What the agent owns; used to route tasks to it.'),
+        tool: z
+          .enum(AGENT_TOOL_IDS as [AgentTool, ...AgentTool[]])
+          .describe('Agent CLI that runs it, one of the available tools.'),
       }),
     )
-    .min(1),
+    .describe('Agents to add to the project. Empty when the listed agents cover the goal.'),
+  tasks: z.array(
+    z.object({
+      key: z.string().describe('Short unique identifier, e.g. "t1".'),
+      title: z.string(),
+      description: z
+        .string()
+        .describe('Self-contained instructions: what to do, where, and how to verify it.'),
+      agentId: z
+        .string()
+        .describe('Id of a listed agent, or key of a new agent, that will execute the task.'),
+      dependsOn: z.array(z.string()).describe('Keys of tasks that must finish first.'),
+    }),
+  ),
 })
 
 export type Plan = z.infer<typeof PlanSchema>
@@ -25,9 +38,11 @@ export interface PlanRequest {
   /** Contents of the project's shared CONTEXT.md. */
   context: string
   goal: string
+  /** Agent CLIs new agents may use, the preferred one first. */
+  tools: AgentTool[]
 }
 
-/** Turns a high-level goal into tasks routed to the project's agents. */
+/** Turns a high-level goal into tasks routed to the project's agents, adding agents if needed. */
 export interface Planner {
   plan(request: PlanRequest): Promise<Plan>
   /** Confirms the planner can be reached; resolves with a detail to show (a version). */
@@ -50,11 +65,20 @@ export function parsePlanText(text: string, project: Project): Plan {
   return validatePlan(parsed.data, project)
 }
 
-/** Validates the plan against the project: known agents, known dependency keys, no cycles. */
+/**
+ * Validates the plan against the project: tasks go to known or new agents, new agents have
+ * unique keys, dependencies point at known tasks and there are no cycles.
+ */
 export function validatePlan(plan: Plan, project: Project): Plan {
-  const agentIds = new Set(project.agents.map((agent) => agent.id))
+  const newKeys = new Set(plan.newAgents.map((agent) => agent.key))
+  const agentIds = new Set([...project.agents.map((agent) => agent.id), ...newKeys])
   const keys = new Set(plan.tasks.map((task) => task.key))
 
+  if (plan.tasks.length === 0 && plan.newAgents.length === 0) {
+    throw new Error('The planner returned no tasks and no agents.')
+  }
+  if (newKeys.size !== plan.newAgents.length)
+    throw new Error('Planner returned duplicate agent keys.')
   if (keys.size !== plan.tasks.length) throw new Error('Planner returned duplicate task keys.')
   for (const task of plan.tasks) {
     if (!agentIds.has(task.agentId)) {

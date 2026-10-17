@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronRight, RotateCcw, Square } from 'lucide-react'
-import type { Agent, Task } from '@shared/types'
+import { Check, ChevronRight, LoaderCircle, Minus, RotateCcw, Square, X } from 'lucide-react'
+import type { Agent, Task, TaskStatus } from '@shared/types'
 import { IconButton } from '../../components/ui/Button'
 import { StatusDot } from '../../components/ui/StatusDot'
 import { useT } from '../../i18n'
@@ -37,8 +37,10 @@ export function TaskRow({ task, agent, dependencies }: TaskRowProps) {
             size={14}
             className={cn('shrink-0 text-faint transition-transform', expanded && 'rotate-90')}
           />
-          <StatusDot className={status.dot} pulse={task.status === 'running'} />
-          <span className="truncate">{task.title}</span>
+          <TaskCheck status={task.status} />
+          <span className={cn('truncate', task.status === 'done' && 'text-muted line-through')}>
+            {task.title}
+          </span>
         </button>
 
         {agent && (
@@ -89,6 +91,36 @@ export function TaskRow({ task, agent, dependencies }: TaskRowProps) {
       )}
     </li>
   )
+}
+
+/** The task as a checklist item: ticked by the orchestrator as soon as the agent is done. */
+function TaskCheck({ status }: { status: TaskStatus }) {
+  const box = 'flex size-4 shrink-0 items-center justify-center rounded-[4px] border'
+  switch (status) {
+    case 'done':
+      return (
+        <span className={cn(box, 'border-success bg-success text-app')}>
+          <Check size={11} strokeWidth={3} />
+        </span>
+      )
+    case 'running':
+      return <LoaderCircle size={16} className="shrink-0 animate-spin text-fg" />
+    case 'failed':
+      return (
+        <span className={cn(box, 'border-danger/60 text-danger')}>
+          <X size={11} strokeWidth={3} />
+        </span>
+      )
+    case 'blocked':
+    case 'cancelled':
+      return (
+        <span className={cn(box, 'border-line-strong text-faint')}>
+          <Minus size={11} strokeWidth={3} />
+        </span>
+      )
+    case 'pending':
+      return <span className={cn(box, 'border-line-strong')} />
+  }
 }
 
 function TaskOutput({ task, runStartedAt }: { task: Task; runStartedAt: number }) {

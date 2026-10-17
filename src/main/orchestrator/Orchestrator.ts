@@ -1,14 +1,21 @@
-import type { Project, Task, TaskOutputEvent } from '@shared/types'
+import { AGENT_TOOL_IDS, AGENT_TOOLS, type AgentTool } from '@shared/ai'
+import {
+  AGENT_COLORS,
+  type AgentInput,
+  type Project,
+  type Task,
+  type TaskOutputEvent,
+} from '@shared/types'
 import { stripAnsi } from '../infra/ansi'
 import { newId } from '../infra/ids'
 import { loadLoginShellPath } from '../infra/loginShellPath'
-import { commandShell } from '../infra/shell'
+import { commandShell, isOnPath } from '../infra/shell'
 import type { ProjectRepository } from '../projects/ProjectRepository'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
 import { buildAgentCommand } from './agents/agentCommand'
 import type { AgentRun, AgentRunner } from './agents/AgentRunner'
 import { buildTaskBrief, taskInstruction } from './agents/taskBrief'
-import type { Planner } from './planning/Planner'
+import type { Plan, Planner } from './planning/Planner'
 import { dependentsOf, goalStatus, isFinished, readyTasks } from './taskGraph'
 
 export interface OrchestratorEvents {
@@ -20,8 +27,9 @@ const RESULT_TAIL_CHARS = 4000
 const OUTPUT_BUFFER_CHARS = 20000
 
 /**
- * Receives goals for a project, asks the planner to split them into tasks, and dispatches
- * those tasks to the project's agents as their dependencies complete. Each agent runs one
+ * Receives goals for a project, asks the planner to split them into tasks (adding the agents
+ * the work needs), and dispatches those tasks to the project's agents as their dependencies
+ * complete. Each agent runs one
  * task at a time; different agents run in parallel.
  */
 export class Orchestrator {
@@ -56,26 +64,36 @@ export class Orchestrator {
   async submit(projectId: string, prompt: string): Promise<void> {
     const project = this.projects.get(projectId)
     if (!prompt.trim()) throw new Error('Describe what the agents should do.')
-    if (project.agents.length === 0) throw new Error('Add at least one agent to this project first.')
 
     const goalId = newId()
     this.mutate(projectId, (draft) => {
-      draft.goals.push({ id: goalId, prompt: prompt.trim(), status: 'planning', createdAt: Date.now() })
+      draft.goals.push({
+        id: goalId,
+        prompt: prompt.trim(),
+        status: 'planning',
+        createdAt: Date.now(),
+      })
     })
 
     try {
       const context = await new ProjectWorkspace(project).plannerContext()
+      await loadLoginShellPath()
+      const tools = availableTools(project)
       const plan = await this.createPlanner().plan({
         project: this.projects.get(projectId),
         context,
         goal: prompt,
+        tools,
       })
 
+      const created = this.recruit(projectId, plan, tools)
+      const agentIdOf = (key: string): string => created.get(key) ?? key
       const idByKey = new Map(plan.tasks.map((task) => [task.key, newId()]))
       this.mutate(projectId, (draft) => {
         const goal = draft.goals.find((g) => g.id === goalId)!
         goal.plan = plan.summary
-        goal.status = 'running'
+        goal.status = plan.tasks.length ? 'running' : 'done'
+        if (created.size) goal.createdAgentIds = [...created.values()]
         for (const planned of plan.tasks) {
           draft.tasks.push({
             id: idByKey.get(planned.key)!,
@@ -83,7 +101,7 @@ export class Orchestrator {
             goalId,
             title: planned.title,
             description: planned.description,
-            agentId: planned.agentId,
+            agentId: agentIdOf(planned.agentId),
             dependsOn: planned.dependsOn.map((key) => idByKey.get(key)!),
             status: 'pending',
             createdAt: Date.now(),
@@ -99,6 +117,28 @@ export class Orchestrator {
         goal.error = errorMessage(error)
       })
     }
+  }
+
+  /**
+   * Adds the agents the plan asks for, with names that don't clash with existing ones and
+   * a tool that is installed. Resolves with the new agent id of each plan key.
+   */
+  private recruit(projectId: string, plan: Plan, tools: AgentTool[]): Map<string, string> {
+    if (plan.newAgents.length === 0) return new Map()
+    const project = this.projects.get(projectId)
+    const taken = new Set(project.agents.map((agent) => agent.name.trim().toLowerCase()))
+    const inputs: AgentInput[] = plan.newAgents.map((planned, index) => {
+      const name = uniqueName(planned.name.trim() || planned.key, taken)
+      taken.add(name.toLowerCase())
+      return {
+        name,
+        role: planned.role.trim(),
+        provider: tools.includes(planned.tool) ? planned.tool : tools[0],
+        color: AGENT_COLORS[(project.agents.length + index) % AGENT_COLORS.length],
+      }
+    })
+    const added = this.projects.addAgents(projectId, inputs)
+    return new Map(plan.newAgents.map((planned, index) => [planned.key, added[index].id]))
   }
 
   cancelTask(projectId: string, taskId: string): void {
@@ -242,6 +282,28 @@ export class Orchestrator {
       for (const goal of draft.goals) goal.status = goalStatus(goal, draft.tasks)
     })
   }
+}
+
+/**
+ * Agent CLIs new agents may use: installed ones, those the project already uses first
+ * (one toolchain across the team). Every known tool when none is found, so planning
+ * still works and the missing CLI shows up as a task error the user can act on.
+ */
+function availableTools(project: Project): AgentTool[] {
+  const used = project.agents.flatMap((agent) =>
+    agent.provider === 'custom' ? [] : [agent.provider],
+  )
+  const ordered = [...new Set([...used, ...AGENT_TOOL_IDS])]
+  const installed = ordered.filter((tool) => isOnPath(AGENT_TOOLS[tool].binary))
+  return installed.length ? installed : ordered
+}
+
+/** `name`, or `name 2`, `name 3`… when it is taken (case-insensitive). */
+function uniqueName(name: string, taken: Set<string>): string {
+  if (!taken.has(name.toLowerCase())) return name
+  let n = 2
+  while (taken.has(`${name} ${n}`.toLowerCase())) n++
+  return `${name} ${n}`
 }
 
 function errorMessage(error: unknown): string {
