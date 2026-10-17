@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Veltrix motion</title>
+    <style>
+      /* Fonts bundled here (SIL OFL), so a render never depends on the network. */
+      @font-face {
+        font-family: 'Inter';
+        font-weight: 100 900;
+        src: url('fonts/inter.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        font-weight: 100 800;
+        src: url('fonts/jetbrains-mono.woff2') format('woff2');
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        background: #0b0b0b;
+        color: #e4e4e4;
+        font: 14px/1.4 Inter, system-ui, sans-serif;
+      }
+      #stage {
+        display: block;
+        background: #141414;
+      }
+
+      /* Export: the stage is the whole window, without controls. */
+      body.render #stage {
+        width: 100vw;
+        height: 100vh;
+      }
+      body.render .controls {
+        display: none;
+      }
+
+      body:not(.render) {
+        display: grid;
+        place-content: center;
+        gap: 14px;
+        padding: 16px;
+        min-height: 100vh;
+      }
+      body:not(.render) #stage {
+        width: min(92vw, 78vh * var(--ratio, 1));
+        aspect-ratio: var(--ratio, 1);
+        border-radius: 10px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .controls input[type='range'] {
+        flex: 1;
+        min-width: 0;
+      }
+      button,
+      select {
+        font: inherit;
+        color: inherit;
+        background: #202020;
+        border: 1px solid #3a3a3a;
+        border-radius: 8px;
+        min-height: 40px;
+        padding: 0 12px;
+      }
+      .time {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        color: #9b9b9b;
+        min-width: 9ch;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="controls">
+      <button id="play" type="button">Pause</button>
+      <input id="scrub" type="range" min="0" step="0.001" value="0" aria-label="Timeline" />
+      <span class="time" id="time">0.00 s</span>
+      <select id="format" aria-label="Format">
+        <option value="vertical">9:16 vertical</option>
+        <option value="horizontal">16:9 horizontal</option>
+        <option value="square">1:1 square</option>
+      </select>
+      <select id="language" aria-label="Language">
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+      </select>
+    </div>
+    <script src="lib/time.js"></script>
+    <script src="lib/brand.js"></script>
+    <script src="lib/svg.js"></script>
+    <script src="lib/ui.js"></script>
+    <script src="scenes/launch.js"></script>
+    <script>
+      // Preview: plays in a loop with a scrubber. Export (?render=1): render.mjs calls
+      // window.draw(t) for every frame and screenshots the page.
+      const FORMATS = { vertical: [1080, 1920], horizontal: [1920, 1080], square: [1080, 1080] }
+      const params = new URLSearchParams(location.search)
+      const scene = window.Scenes[params.get('scene') || 'launch']
+      const stage = document.getElementById('stage')
+      const ui = {
+        play: document.getElementById('play'),
+        scrub: document.getElementById('scrub'),
+        time: document.getElementById('time'),
+        format: document.getElementById('format'),
+        language: document.getElementById('language'),
+      }
+      ui.format.value = params.get('format') || 'vertical'
+      ui.language.value = params.get('language') || 'en'
+
+      function draw(t) {
+        const [width, height] = FORMATS[ui.format.value]
+        stage.setAttribute('viewBox', `0 0 ${width} ${height}`)
+        stage.style.setProperty('--ratio', width / height)
+        stage.innerHTML = scene.draw(t, { width, height, language: ui.language.value })
+        ui.time.textContent = `${t.toFixed(2)} s`
+        ui.scrub.value = t
+      }
+      window.draw = draw
+      window.scene = scene
+
+      document.fonts.load('700 40px Inter').then(() => document.fonts.load('400 20px "JetBrains Mono"')).then(() => {
+        ui.scrub.max = scene.duration
+        if (params.get('render') === '1') {
+          document.body.classList.add('render')
+          draw(0)
+          window.ready = true
+          return
+        }
+        let playing = true
+        let origin = performance.now()
+        const tick = (now) => {
+          if (playing) draw(((now - origin) / 1000) % scene.duration)
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+        ui.play.onclick = () => {
+          playing = !playing
+          ui.play.textContent = playing ? 'Pause' : 'Play'
+          origin = performance.now() - Number(ui.scrub.value) * 1000
+        }
+        ui.scrub.oninput = () => {
+          playing = false
+          ui.play.textContent = 'Play'
+          draw(Number(ui.scrub.value))
+        }
+      })
+    </script>
+  </body>
+</html>
