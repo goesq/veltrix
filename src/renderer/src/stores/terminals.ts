@@ -4,7 +4,7 @@ import type { AgentColor, TerminalSession } from '@shared/types'
 import { messages } from '../i18n'
 import { api } from '../lib/api'
 import { colorAt } from '../lib/colors'
-import { folderName } from '../lib/cwd'
+import { shortPath } from '../lib/cwd'
 import { terminalBus } from '../lib/terminalBus'
 import { AutoTitle } from '../features/terminals/autoTitle'
 
@@ -79,8 +79,8 @@ export const workspaceTabs = (tabs: TerminalTab[]): TerminalTab[] =>
 /** Workspace terminals shown in the grid layout (not hidden with the eye toggle). */
 export const gridTabs = (tabs: TerminalTab[]): TerminalTab[] => tabs.filter((tab) => !tab.hidden)
 
-/** Title of a terminal named after its first command: `veltrix · npm run dev`. */
-const autoTitle = (cwd: string, command: string): string => `${folderName(cwd)} · ${command}`
+/** Title of a terminal named after its first command: `Git/veltrix · npm run dev`. */
+const autoTitle = (cwd: string, command: string): string => `${shortPath(cwd)} · ${command}`
 
 /** Per-terminal input trackers; plain state, never rendered. */
 const autoTitles = new Map<string, AutoTitle>()

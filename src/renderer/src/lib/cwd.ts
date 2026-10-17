@@ -30,11 +30,16 @@ export function cwdFromOsc7(payload: string): string | undefined {
 /** A home folder (`C:\Users\x`, `/Users/x`, `/home/x`), shown as `~` like the prompt does. */
 const HOME_PATH = /^(?:[a-zA-Z]:\\Users\\[^\\]+|\/Users\/[^/]+|\/home\/[^/]+|\/root)[/\\]?$/
 
-/** Last segment of a working directory, as the prompt shows it: `veltrix`, `~`, `C:\`. */
-export function folderName(cwd: string): string {
+/**
+ * The last two folders of a working directory, enough to tell same-named folders apart:
+ * `Git/veltrix`, `~/projects`, `~`, `C:/tools`, `C:\`.
+ */
+export function shortPath(cwd: string): string {
   if (HOME_PATH.test(cwd)) return '~'
   const parts = cwd.split(/[/\\]/).filter(Boolean)
   if (parts.length === 0) return '/'
   const last = parts[parts.length - 1]
-  return /^[a-zA-Z]:$/.test(last) ? `${last}\\` : last
+  if (parts.length === 1) return /^[a-zA-Z]:$/.test(last) ? `${last}\\` : `/${last}`
+  const parent = cwd.slice(0, cwd.length - last.length).replace(/[/\\]+$/, '')
+  return `${HOME_PATH.test(parent) ? '~' : parts[parts.length - 2]}/${last}`
 }
