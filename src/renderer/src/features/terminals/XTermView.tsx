@@ -5,6 +5,7 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { isMac } from '../../lib/api'
 import { cwdFromOsc7 } from '../../lib/cwd'
+import { monoFontFamily, monoFontReady } from '../../lib/monoFont'
 import { terminalTheme } from '../../lib/terminalTheme'
 import { useSettings } from '../../stores/settings'
 
@@ -45,60 +46,78 @@ export function XTermView({
   // Callbacks change identity on every render; read them through refs inside xterm handlers.
   const callbacks = useRef({ onInput, onResize, onCwd })
   callbacks.current = { onInput, onResize, onCwd }
+  const focusedRef = useRef(focused)
+  focusedRef.current = focused
 
   useEffect(() => {
-    const container = containerRef.current!
-    const terminal = new Terminal({
-      fontFamily: getComputedStyle(document.body).getPropertyValue('--font-mono'),
-      fontSize,
-      lineHeight: 1.25,
-      cursorBlink: true,
-      allowProposedApi: true,
-      disableStdin: !callbacks.current.onInput,
-      scrollback: 10000,
-      theme: terminalTheme,
+    // xterm measures the cell size once, when it opens. Opening before the web font has
+    // loaded sizes cells for the fallback font, so columns stop matching what is drawn and
+    // lines wrap in the wrong place. Output is replayed from the bus, so waiting loses nothing.
+    let unmount: (() => void) | undefined
+    let disposed = false
+    void monoFontReady().then(() => {
+      if (!disposed) unmount = mount()
     })
-    const fit = new FitAddon()
-    terminal.loadAddon(fit)
-    terminal.loadAddon(new WebLinksAddon((_event, uri) => window.open(uri)))
-    terminal.open(container)
-    if (renderer === 'webgl') loadWebglRenderer(terminal)
-    terminal.attachCustomKeyEventHandler((event) => handleClipboardKeys(terminal, event))
-
-    const input = terminal.onData((data) => callbacks.current.onInput?.(data))
-    const cwdReports = terminal.parser.registerOscHandler(7, (payload) => {
-      const cwd = cwdFromOsc7(payload)
-      if (cwd) callbacks.current.onCwd?.(cwd)
-      return true
-    })
-    // xterm reflows at once; the shell hears about it once the size settles. Resizing the
-    // PTY on every frame of a divider drag makes shells (ConPTY especially) redraw over and over.
-    let resizeTimer: ReturnType<typeof setTimeout> | undefined
-    const resize = terminal.onResize(({ cols, rows }) => {
-      clearTimeout(resizeTimer)
-      resizeTimer = setTimeout(() => callbacks.current.onResize?.(cols, rows), PTY_RESIZE_DELAY)
-    })
-    const unsubscribe = subscribe((data) => terminal.write(data))
-
-    const refit = (): void => {
-      if (container.offsetWidth > 0 && container.offsetHeight > 0) fit.fit()
-    }
-    const observer = new ResizeObserver(refit)
-    observer.observe(container)
-    refit()
-    callbacks.current.onResize?.(terminal.cols, terminal.rows)
-
-    terminalRef.current = terminal
-    fitRef.current = fit
     return () => {
-      observer.disconnect()
-      clearTimeout(resizeTimer)
-      unsubscribe()
-      input.dispose()
-      cwdReports.dispose()
-      resize.dispose()
-      terminal.dispose()
-      terminalRef.current = null
+      disposed = true
+      unmount?.()
+    }
+
+    function mount(): () => void {
+      const container = containerRef.current!
+      const terminal = new Terminal({
+        fontFamily: monoFontFamily(),
+        fontSize,
+        lineHeight: 1.25,
+        cursorBlink: true,
+        allowProposedApi: true,
+        disableStdin: !callbacks.current.onInput,
+        scrollback: 10000,
+        theme: terminalTheme,
+      })
+      const fit = new FitAddon()
+      terminal.loadAddon(fit)
+      terminal.loadAddon(new WebLinksAddon((_event, uri) => window.open(uri)))
+      terminal.open(container)
+      if (renderer === 'webgl') loadWebglRenderer(terminal)
+      terminal.attachCustomKeyEventHandler((event) => handleClipboardKeys(terminal, event))
+
+      const input = terminal.onData((data) => callbacks.current.onInput?.(data))
+      const cwdReports = terminal.parser.registerOscHandler(7, (payload) => {
+        const cwd = cwdFromOsc7(payload)
+        if (cwd) callbacks.current.onCwd?.(cwd)
+        return true
+      })
+      // xterm reflows at once; the shell hears about it once the size settles. Resizing the
+      // PTY on every frame of a divider drag makes shells (ConPTY especially) redraw over and over.
+      let resizeTimer: ReturnType<typeof setTimeout> | undefined
+      const resize = terminal.onResize(({ cols, rows }) => {
+        clearTimeout(resizeTimer)
+        resizeTimer = setTimeout(() => callbacks.current.onResize?.(cols, rows), PTY_RESIZE_DELAY)
+      })
+      const unsubscribe = subscribe((data) => terminal.write(data))
+
+      const refit = (): void => {
+        if (container.offsetWidth > 0 && container.offsetHeight > 0) fit.fit()
+      }
+      const observer = new ResizeObserver(refit)
+      observer.observe(container)
+      refit()
+      callbacks.current.onResize?.(terminal.cols, terminal.rows)
+
+      terminalRef.current = terminal
+      fitRef.current = fit
+      if (focusedRef.current) terminal.focus()
+      return () => {
+        observer.disconnect()
+        clearTimeout(resizeTimer)
+        unsubscribe()
+        input.dispose()
+        cwdReports.dispose()
+        resize.dispose()
+        terminal.dispose()
+        terminalRef.current = null
+      }
     }
     // The terminal is created once per mount; data source identity is stable per view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
