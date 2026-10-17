@@ -97,14 +97,30 @@ export class ProjectRepository {
     this.store.write({ projects: this.list() })
   }
 
+  /** Creates or edits an agent. Its worktree is Veltrix's to set (setWorktree), never the caller's. */
   saveAgent(projectId: string, input: AgentInput & { id?: string }): Agent {
-    const agent: Agent = { ...input, id: input.id ?? newId() }
+    const { worktree: _ignored, ...fields } = input
+    let agent: Agent = { ...fields, id: input.id ?? newId() }
     this.update(projectId, (project) => {
       const index = project.agents.findIndex((existing) => existing.id === agent.id)
-      if (index >= 0) project.agents[index] = agent
-      else project.agents.push(agent)
+      if (index >= 0) {
+        agent = { ...agent, worktree: project.agents[index].worktree }
+        project.agents[index] = agent
+      } else project.agents.push(agent)
     })
     return agent
+  }
+
+  setWorktree(projectId: string, agentId: string, worktree: Agent['worktree']): Agent {
+    let updated: Agent | undefined
+    this.update(projectId, (project) => {
+      const agent = project.agents.find((a) => a.id === agentId)
+      if (!agent) throw new Error('This agent was removed from the project.')
+      if (worktree) agent.worktree = worktree
+      else delete agent.worktree
+      updated = { ...agent }
+    })
+    return updated!
   }
 
   removeAgent(projectId: string, agentId: string): void {

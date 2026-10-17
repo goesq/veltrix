@@ -1,5 +1,5 @@
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { Crown, Maximize2, Minimize2, Play, Square, X } from 'lucide-react'
+import { Crown, GitBranch, Maximize2, Minimize2, Play, Square, X } from 'lucide-react'
 import type { LivePermission } from '@shared/ai'
 import type { Agent } from '@shared/types'
 import { IconButton } from '../../components/ui/Button'
@@ -81,6 +81,15 @@ export function AgentCard({ projectId, agent, selected, panel }: AgentCardProps)
       >
         <StatusDot className={tagDot[agent.color]} pulse={running && !waiting} size="md" />
         <span className="truncate font-medium">{agent.name}</span>
+        {agent.worktree && (
+          <span
+            title={`${t.agents.worktree}: ${agent.worktree.branch}`}
+            className="flex shrink-0 items-center gap-1 rounded bg-raised px-1.5 py-0.5 font-mono text-[10px] text-muted"
+          >
+            <GitBranch size={10} />
+            {agent.worktree.branch.replace(/^veltrix\//, '')}
+          </span>
+        )}
         {agent.manager && (
           <Crown size={13} className="shrink-0 text-tag-yellow" aria-label={t.canvas.manager} />
         )}

@@ -5,6 +5,7 @@ import { childEnv, prependToPath } from '../infra/environment'
 import { loadLoginShellPath } from '../infra/loginShellPath'
 import { commandShell } from '../infra/shell'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
+import { agentCwd, pathForAgent } from '../projects/agentPaths'
 import { linkedNotes } from './linkedNotes'
 import { buildLiveBrief, liveOpening } from './liveBrief'
 
@@ -81,15 +82,19 @@ export class LiveSessionService {
 
     const workspace = new ProjectWorkspace(project)
     await workspace.readContext(agent.id) // Creates the context file from its template if needed.
-    const briefPath = await workspace.writeLiveBrief(
-      agent.id,
-      buildLiveBrief({
-        agent,
-        projectName: project.name,
-        contextFile: workspace.contextFile(agent.id).path,
-        notes: await linkedNotes(project, agent.id),
-        managerName: project.agents.find((a) => a.id === agent.recruitedBy)?.name,
-      }),
+    const briefPath = pathForAgent(
+      project,
+      agent,
+      await workspace.writeLiveBrief(
+        agent.id,
+        buildLiveBrief({
+          agent,
+          projectName: project.name,
+          contextFile: pathForAgent(project, agent, workspace.contextFile(agent.id).path),
+          notes: await linkedNotes(project, agent.id),
+          managerName: project.agents.find((a) => a.id === agent.recruitedBy)?.name,
+        }),
+      ),
     )
 
     const shell = commandShell()
@@ -104,7 +109,7 @@ export class LiveSessionService {
       name: 'xterm-256color',
       cols: Math.max(cols, 20),
       rows: Math.max(rows, 5),
-      cwd: project.path,
+      cwd: agentCwd(project, agent),
       env: this.sessionEnv(token),
     })
     const session: LiveSession = {

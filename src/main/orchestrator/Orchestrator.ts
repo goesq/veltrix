@@ -11,6 +11,7 @@ import { newId } from '../infra/ids'
 import { loadLoginShellPath } from '../infra/loginShellPath'
 import { commandShell, isOnPath } from '../infra/shell'
 import type { ProjectRepository } from '../projects/ProjectRepository'
+import { agentCwd, pathForAgent } from '../projects/agentPaths'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
 import { buildAgentCommand } from './agents/agentCommand'
 import type { AgentRun, AgentRunner } from './agents/AgentRunner'
@@ -210,7 +211,10 @@ export class Orchestrator {
       await loadLoginShellPath()
 
       const run = this.runner.start({
-        cwd: project.path,
+        cwd: agentCwd(
+          project,
+          project.agents.find((a) => a.id === task.agentId)!,
+        ),
         commandLine: command,
         onData: (data) => {
           log.write(data)
@@ -256,11 +260,13 @@ export class Orchestrator {
         goal,
         task,
         dependencies,
-        contextFile: workspace.contextFile(agent.id).path,
+        contextFile: pathForAgent(project, agent, workspace.contextFile(agent.id).path),
         sharedContext: project.context?.scope !== 'perAgent',
       }),
     )
-    const instruction = taskInstruction(workspace.briefRelativePath(task.id))
+    const instruction = taskInstruction(
+      pathForAgent(project, agent, workspace.briefRelativePath(task.id)),
+    )
     return buildAgentCommand(agent, instruction, commandShell())
   }
 

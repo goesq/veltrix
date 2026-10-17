@@ -7,6 +7,7 @@ import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { colorAt, tagDot } from '../../lib/colors'
+import { AgentWorktree } from './AgentWorktree'
 import { providerIds, providerLabel } from './providers'
 
 interface AgentDialogProps {
@@ -134,6 +135,8 @@ export function AgentDialog({ projectId, open, agent, agentCount, onClose }: Age
           ))}
         </div>
       </Field>
+
+      {agent && <AgentWorktree projectId={projectId} agent={agent} />}
 
       {error && <p className="text-xs text-danger">{error}</p>}
     </Dialog>

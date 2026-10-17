@@ -80,7 +80,15 @@ export interface Agent {
   manager?: boolean
   /** The manager agent that recruited this one, if any; only it may dismiss it. */
   recruitedBy?: string
+  /** Its own git worktree, when it works apart from the project folder. Set by Veltrix. */
+  worktree?: AgentWorktree
   color: AgentColor
+}
+
+export interface AgentWorktree {
+  /** Absolute folder of the worktree. */
+  path: string
+  branch: string
 }
 
 export const AGENT_COLORS = ['green', 'blue', 'orange', 'purple', 'pink', 'yellow'] as const
@@ -258,7 +266,13 @@ export interface ProjectCanvas {
   edges: CanvasEdge[]
 }
 
-export const EMPTY_CANVAS: ProjectCanvas = { nodes: [], notes: [], texts: [], portals: [], edges: [] }
+export const EMPTY_CANVAS: ProjectCanvas = {
+  nodes: [],
+  notes: [],
+  texts: [],
+  portals: [],
+  edges: [],
+}
 
 /** A note's content changed on disk (an agent edited it, or another view saved it). */
 export interface NoteChange {
