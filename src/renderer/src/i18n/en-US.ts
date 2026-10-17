@@ -131,6 +131,10 @@ export const enUS: Messages = {
     tool: 'Tool',
     command: 'Command',
     commandHint: 'Runs in the project folder. {prompt} receives the instruction.',
+    worktree: 'Own workspace (git worktree)',
+    worktreeHint:
+      'Works on its own branch in a separate copy of the project, so agents working at the same time never touch the same files. Takes effect now.',
+    worktreeWorking: 'Updating the worktree…',
     color: 'Color',
   },
 
@@ -155,6 +159,7 @@ export const enUS: Messages = {
       note: 'Note',
       checklist: 'Checklist',
       text: 'Text',
+      portal: 'Browser portal',
     },
     newAgentWith: (tool) => `New ${tool} agent`,
     newAgentHint: 'opens and starts',
@@ -191,6 +196,14 @@ export const enUS: Messages = {
       bottom: 'Align bottom',
       distributeX: 'Distribute horizontally',
       distributeY: 'Distribute vertically',
+    },
+    portal: {
+      back: 'Back',
+      forward: 'Forward',
+      reload: 'Reload',
+      address: 'Type an address or search',
+      empty:
+        'Type an address above. Link an agent to this portal and it can open pages, read them, click and type.',
     },
     permission: 'Session permissions',
     permissionLocked: 'Stop the session to change its permissions',

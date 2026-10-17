@@ -8,7 +8,13 @@ import {
 } from '@xyflow/react'
 import { AGENT_TOOLS, type AgentTool } from '@shared/ai'
 import { canvasOf } from '@shared/canvas'
-import type { CanvasNoteNode, CanvasTextNode, Project, ProjectCanvas } from '@shared/types'
+import type {
+  CanvasNoteNode,
+  CanvasPortalNode,
+  CanvasTextNode,
+  Project,
+  ProjectCanvas,
+} from '@shared/types'
 import { api } from '../../lib/api'
 import { colorAt } from '../../lib/colors'
 import { useLive } from '../../stores/live'
@@ -27,6 +33,9 @@ import {
   withGrid,
   withLayout,
   withNote,
+  withPortal,
+  patchPortal,
+  PORTAL_SIZE,
   withoutNodes,
   withText,
   type Alignment,
@@ -163,6 +172,21 @@ export function useCanvas(project: Project) {
   const tidy = (ids: string[]): void => save(withGrid(canvas, ids))
   const align = (ids: string[], mode: Alignment): void => save(withAlignment(canvas, ids, mode))
 
+  const addPortal = (at: XYPosition): void => {
+    const portal: CanvasPortalNode = {
+      id: crypto.randomUUID(),
+      ...snapped(at),
+      ...PORTAL_SIZE,
+      url: 'about:blank',
+    }
+    setJustCreated(portal.id)
+    save(withPortal(canvas, portal))
+  }
+
+  /** Browsing isn't something to undo, so a portal's page is saved outside the history. */
+  const rememberPortalUrl = (id: string, url: string): void =>
+    void api.canvas.save(project.id, patchPortal(canvas, id, { url }))
+
   const updateNote = (id: string, patch: Partial<CanvasNoteNode>): void =>
     save(patchNote(canvas, id, patch))
   const updateText = (id: string, patch: Partial<CanvasTextNode>): void =>
@@ -185,6 +209,8 @@ export function useCanvas(project: Project) {
     createAgent,
     addNote,
     addText,
+    addPortal,
+    rememberPortalUrl,
     updateNote,
     updateText,
     duplicate,

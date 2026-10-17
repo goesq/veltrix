@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { BrowserWindow, shell } from 'electron'
+import { isPortalUrl } from '@shared/canvas'
 
 const BACKGROUND = '#181818'
 
@@ -31,8 +32,11 @@ export function createMainWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Portals on the canvas are <webview>s; guardPortals locks each one down.
+      webviewTag: true,
     },
   })
+  guardPortals(window)
 
   window.once('ready-to-show', () => window.show())
 
@@ -50,4 +54,32 @@ export function createMainWindow(): BrowserWindow {
   }
 
   return window
+}
+
+/** Session partition shared by every portal, away from the app's own. */
+export const PORTAL_PARTITION = 'persist:veltrix-portals'
+
+/**
+ * Every <webview> (portal) attaches with the same locked-down settings, whatever the page
+ * asked for: no preload, no Node, isolated and sandboxed, in its own partition, and only on
+ * web pages. Links that open a new window load in the same portal instead.
+ */
+function guardPortals(window: BrowserWindow): void {
+  window.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    delete webPreferences.preload
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+    webPreferences.sandbox = true
+    params.partition = PORTAL_PARTITION
+    if (!isPortalUrl(params.src)) event.preventDefault()
+  })
+  window.webContents.on('did-attach-webview', (_event, guest) => {
+    guest.setWindowOpenHandler(({ url }) => {
+      if (isPortalUrl(url)) void guest.loadURL(url)
+      return { action: 'deny' }
+    })
+    guest.on('will-navigate', (event, url) => {
+      if (!isPortalUrl(url)) event.preventDefault()
+    })
+  })
 }

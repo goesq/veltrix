@@ -7,6 +7,8 @@ export interface CanvasActions {
   remove(ids: string[]): void
   updateNote(id: string, patch: Partial<CanvasNoteNode>): void
   updateText(id: string, patch: Partial<CanvasTextNode>): void
+  /** Remembers the page a portal is on (not an undoable change). */
+  rememberPortalUrl(id: string, url: string): void
   /** Opens a node as a large panel over the canvas (or puts it back, with null). */
   lift(id: string | null): void
   /** Node currently shown as a panel, if any. */

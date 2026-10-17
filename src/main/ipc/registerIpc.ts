@@ -16,11 +16,13 @@ import { isOnPath } from '../infra/shell'
 import { loadLoginShellPath } from '../infra/loginShellPath'
 import type { CanvasService } from '../canvas/CanvasService'
 import type { NoteWatcher } from '../canvas/NoteWatcher'
+import type { PortalService } from '../canvas/PortalService'
 import type { LiveSessionService } from '../live/LiveSessionService'
 import type { MessageLog } from '../live/MessageLog'
 import type { Orchestrator } from '../orchestrator/Orchestrator'
 import { createPlanner } from '../orchestrator/planning/createPlanner'
 import type { ProjectRepository } from '../projects/ProjectRepository'
+import type { WorktreeService } from '../projects/WorktreeService'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
 import type { SettingsService } from '../settings/SettingsService'
 import type { SessionStore } from '../terminal/SessionStore'
@@ -38,6 +40,8 @@ export interface Services {
   messages: MessageLog
   canvas: CanvasService
   noteWatcher: NoteWatcher
+  portals: PortalService
+  worktrees: WorktreeService
 }
 
 /** Wires renderer requests to the services. This layer only translates; it holds no logic. */
@@ -52,6 +56,8 @@ export function registerIpc({
   messages,
   canvas,
   noteWatcher,
+  portals,
+  worktrees,
 }: Services): void {
   ipcMain.handle(IpcChannel.terminalProfiles, () => shellProfiles.list())
   ipcMain.handle(IpcChannel.terminalCreate, (_e, options: TerminalCreateOptions) =>
@@ -102,6 +108,11 @@ export function registerIpc({
     IpcChannel.projectsWriteContext,
     (_e, projectId: string, content: string, agentId?: string) =>
       new ProjectWorkspace(projects.get(projectId)).writeContext(content, agentId),
+  )
+  ipcMain.handle(
+    IpcChannel.projectsSetAgentWorktree,
+    (_e, projectId: string, agentId: string, enabled: boolean) =>
+      enabled ? worktrees.enable(projectId, agentId) : worktrees.disable(projectId, agentId),
   )
   ipcMain.handle(IpcChannel.projectsSetContext, (_e, projectId: string, context: ProjectContext) =>
     projects.setContext(projectId, context),
@@ -178,6 +189,16 @@ export function registerIpc({
   )
   ipcMain.handle(IpcChannel.notesWrite, (_e, projectId: string, noteId: string, content: string) =>
     canvas.writeNote(projectId, noteId, content),
+  )
+  ipcMain.on(
+    IpcChannel.portalsRegister,
+    (_e, projectId: string, portalId: string, webContentsId: number) =>
+      portals.register(projectId, portalId, webContentsId),
+  )
+  ipcMain.on(
+    IpcChannel.portalsUnregister,
+    (_e, projectId: string, portalId: string, webContentsId: number) =>
+      portals.unregister(projectId, portalId, webContentsId),
   )
   ipcMain.handle(IpcChannel.notesWatch, (_e, projectId: string) => noteWatcher.watch(projectId))
   ipcMain.handle(IpcChannel.notesUnwatch, (_e, projectId: string) => noteWatcher.unwatch(projectId))

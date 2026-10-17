@@ -15,6 +15,8 @@ const USAGE = [
   '       ${SEND_COMMAND} --peers',
   '       ${SEND_COMMAND} --recruit <name> "<role>" [--tool <cli>]   (manager agents)',
   '       ${SEND_COMMAND} --dismiss <name>                         (manager agents)',
+  '       ${SEND_COMMAND} --browser open <url> | read | click <n|text> | type <n|field> "text" | screenshot | back',
+  '                    [--portal <name>]                          (linked browser portals)',
 ].join('\\n')
 const args = process.argv.slice(2)
 const socketPath = process.env.VELTRIX_SOCKET
@@ -48,6 +50,14 @@ async function main() {
     const [name, ...role] = rest
     if (!name || !role.join(' ').trim()) fail(USAGE)
     request = { op: 'recruit', name, role: role.join(' '), tool }
+  } else if (args[0] === '--browser') {
+    const rest = args.slice(1)
+    const portalAt = rest.indexOf('--portal')
+    const portal = portalAt >= 0 ? rest[portalAt + 1] : undefined
+    if (portalAt >= 0) rest.splice(portalAt, 2)
+    const [action, ...actionArgs] = rest
+    if (!action) fail(USAGE)
+    request = { op: 'browser', action, args: actionArgs, portal }
   } else if (args[0] === '--dismiss') {
     if (!args[1]) fail(USAGE)
     request = { op: 'dismiss', name: args[1] }

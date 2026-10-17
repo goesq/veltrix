@@ -46,6 +46,7 @@ export const IpcChannel = {
   projectsReadContext: 'projects:read-context',
   projectsWriteContext: 'projects:write-context',
   projectsSetContext: 'projects:set-context',
+  projectsSetAgentWorktree: 'projects:set-agent-worktree',
   projectsPickContextFile: 'projects:pick-context-file',
   projectsChanged: 'projects:changed',
 
@@ -78,6 +79,8 @@ export const IpcChannel = {
   notesWatch: 'notes:watch',
   notesUnwatch: 'notes:unwatch',
   notesChanged: 'notes:changed',
+  portalsRegister: 'portals:register',
+  portalsUnregister: 'portals:unregister',
 
   aiInstalledTools: 'ai:installed-tools',
   aiCheckPlanner: 'ai:check-planner',
@@ -114,6 +117,8 @@ export interface VeltrixApi {
     readContext(projectId: string, agentId?: string): Promise<ContextDocument>
     writeContext(projectId: string, content: string, agentId?: string): Promise<void>
     setContext(projectId: string, context: ProjectContext): Promise<Project>
+    /** Gives the agent its own git worktree (or removes it; refused with uncommitted changes). */
+    setAgentWorktree(projectId: string, agentId: string, enabled: boolean): Promise<Agent>
     /** Asks for a file to use as context; resolves with its path as stored on the project. */
     pickContextFile(projectId: string): Promise<string | null>
     onChanged(listener: (project: Project) => void): Unsubscribe
@@ -163,6 +168,12 @@ export interface VeltrixApi {
     watch(projectId: string): Promise<void>
     unwatch(projectId: string): Promise<void>
     onChanged(listener: (change: NoteChange) => void): Unsubscribe
+  }
+  /** Browser portals on the canvas, so linked agents can drive them. */
+  portals: {
+    /** The portal's <webview> attached: its page is the one agents act on. */
+    register(projectId: string, portalId: string, webContentsId: number): void
+    unregister(projectId: string, portalId: string, webContentsId: number): void
   }
   ai: {
     /** Which known CLIs (by executable name) are on the user's PATH. */

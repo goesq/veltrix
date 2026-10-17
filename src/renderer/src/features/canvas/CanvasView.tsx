@@ -24,11 +24,12 @@ import { FloatingEdge } from './FloatingEdge'
 import { LiftedPanel } from './LiftedPanel'
 import { MessageFeed } from './MessageFeed'
 import { NoteNode } from './NoteNode'
+import { PortalNode } from './PortalNode'
 import { TextNode } from './TextNode'
 import { useCanvas } from './useCanvas'
 import { useNodeNavigation } from './useNodeNavigation'
 
-const nodeTypes = { agent: AgentNode, note: NoteNode, text: TextNode }
+const nodeTypes = { agent: AgentNode, note: NoteNode, text: TextNode, portal: PortalNode }
 const edgeTypes = { floating: FloatingEdge }
 
 /**
@@ -92,6 +93,7 @@ function Canvas({ project }: { project: Project }) {
     if (!placing) return
     const at = screenToFlowPosition({ x: event.clientX, y: event.clientY })
     if (tool === 'text') canvas.addText(at)
+    else if (tool === 'portal') canvas.addPortal(at)
     else void canvas.addNote(tool, at)
     setTool('select')
   }
@@ -100,11 +102,13 @@ function Canvas({ project }: { project: Project }) {
     remove: canvas.remove,
     updateNote: canvas.updateNote,
     updateText: canvas.updateText,
+    rememberPortalUrl: canvas.rememberPortalUrl,
     lift: setLifted,
     lifted,
     justCreated: canvas.justCreated,
   }
-  const placing = !panning && (tool === 'note' || tool === 'checklist' || tool === 'text')
+  const placing =
+    !panning && (tool === 'note' || tool === 'checklist' || tool === 'text' || tool === 'portal')
 
   return (
     <CanvasActionsContext.Provider value={actions}>

@@ -4,6 +4,7 @@ import { cn } from '../../lib/cn'
 import { useCanvasActions } from './canvasActions'
 import { AgentCard } from './AgentNode'
 import { NoteCard } from './NoteNode'
+import { PortalCard } from './PortalNode'
 
 /**
  * A node lifted off the canvas into a large panel, at full size and 100% zoom, where a
@@ -15,7 +16,8 @@ export function LiftedPanel({ project }: { project: Project }) {
 
   const agent = project.agents.find((a) => a.id === lifted)
   const note = canvasOf(project).notes.find((n) => n.id === lifted)
-  if (!agent && !note) return null
+  const portal = canvasOf(project).portals.find((p) => p.id === lifted)
+  if (!agent && !note && !portal) return null
 
   return (
     <div
@@ -28,11 +30,12 @@ export function LiftedPanel({ project }: { project: Project }) {
         className={cn(
           'lift-in h-full max-h-[900px] w-full',
           // A terminal wants width; text reads best in a narrower column.
-          agent ? 'max-w-[1200px]' : 'max-w-3xl',
+          agent || portal ? 'max-w-[1200px]' : 'max-w-3xl',
         )}
       >
         {agent && <AgentCard projectId={project.id} agent={agent} panel />}
         {note && <NoteCard projectId={project.id} note={note} panel />}
+        {portal && <PortalCard projectId={project.id} portal={portal} panel />}
       </div>
     </div>
   )

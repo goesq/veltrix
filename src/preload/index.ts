@@ -41,6 +41,8 @@ const api: VeltrixApi = {
       ipcRenderer.invoke(IpcChannel.projectsReadContext, projectId, agentId),
     writeContext: (projectId, content, agentId) =>
       ipcRenderer.invoke(IpcChannel.projectsWriteContext, projectId, content, agentId),
+    setAgentWorktree: (projectId, agentId, enabled) =>
+      ipcRenderer.invoke(IpcChannel.projectsSetAgentWorktree, projectId, agentId, enabled),
     setContext: (projectId, context) =>
       ipcRenderer.invoke(IpcChannel.projectsSetContext, projectId, context),
     pickContextFile: (projectId) =>
@@ -93,6 +95,12 @@ const api: VeltrixApi = {
     watch: (projectId) => ipcRenderer.invoke(IpcChannel.notesWatch, projectId),
     unwatch: (projectId) => ipcRenderer.invoke(IpcChannel.notesUnwatch, projectId),
     onChanged: (listener) => subscribe(IpcChannel.notesChanged, listener),
+  },
+  portals: {
+    register: (projectId, portalId, webContentsId) =>
+      ipcRenderer.send(IpcChannel.portalsRegister, projectId, portalId, webContentsId),
+    unregister: (projectId, portalId, webContentsId) =>
+      ipcRenderer.send(IpcChannel.portalsUnregister, projectId, portalId, webContentsId),
   },
   ai: {
     installedTools: () => ipcRenderer.invoke(IpcChannel.aiInstalledTools),

@@ -133,6 +133,10 @@ export const ptBR = {
     tool: 'Ferramenta',
     command: 'Comando',
     commandHint: 'Executado no diretório do projeto. {prompt} recebe a instrução.',
+    worktree: 'Workspace próprio (git worktree)',
+    worktreeHint:
+      'Trabalha numa branch própria, numa cópia separada do projeto, para agentes rodando ao mesmo tempo nunca mexerem nos mesmos arquivos. Vale na hora.',
+    worktreeWorking: 'Atualizando o worktree…',
     color: 'Cor',
   },
 
@@ -157,6 +161,7 @@ export const ptBR = {
       note: 'Nota',
       checklist: 'Checklist',
       text: 'Texto',
+      portal: 'Portal (navegador)',
     },
     newAgentWith: (tool: string) => `Novo agente ${tool}`,
     newAgentHint: 'abre e inicia',
@@ -193,6 +198,14 @@ export const ptBR = {
       bottom: 'Alinhar embaixo',
       distributeX: 'Distribuir na horizontal',
       distributeY: 'Distribuir na vertical',
+    },
+    portal: {
+      back: 'Voltar',
+      forward: 'Avançar',
+      reload: 'Recarregar',
+      address: 'Digite um endereço ou pesquise',
+      empty:
+        'Digite um endereço acima. Ligue um agente a este portal e ele pode abrir páginas, ler, clicar e digitar.',
     },
     permission: 'Permissões da sessão',
     permissionLocked: 'Pare a sessão para mudar as permissões',

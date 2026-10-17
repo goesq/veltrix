@@ -6,6 +6,7 @@ import { describeNotes, formatIncoming } from './liveBrief'
 import type { MessageLog } from './MessageLog'
 import type { Sender, SendRequest, SendResponse } from './protocol'
 import { RateGuard } from './RateGuard'
+import type { PortalService } from '../canvas/PortalService'
 import type { TeamService } from './TeamService'
 
 /** What the router needs from the live sessions to hand a message over. */
@@ -31,6 +32,7 @@ export class MessageRouter {
     private readonly delivery: MessageDelivery,
     private readonly log: MessageLog,
     private readonly team: TeamService,
+    private readonly portals: PortalService,
   ) {}
 
   async handle(sender: Sender, request: SendRequest): Promise<SendResponse> {
@@ -43,11 +45,17 @@ export class MessageRouter {
       return this.team.recruit(project, from, request.name, request.role, request.tool)
     }
     if (request.op === 'dismiss') return this.team.dismiss(project, from, request.name)
+    if (request.op === 'browser') {
+      return this.portals.run(project, from, request.action, request.args, request.portal)
+    }
     const notes = await linkedNotes(project, from.id)
     const noteList = notes.length
       ? `Notes you can read and edit:\n${describeNotes(notes)}`
       : 'No notes are linked to you.'
-    return { ok: true, text: `${describePeers(project, from)}\n${noteList}` }
+    return {
+      ok: true,
+      text: `${describePeers(project, from)}\n${noteList}\n${this.portals.describe(project, from)}`,
+    }
   }
 
   private send(project: Project, from: Agent, toName: string, rawText: string): SendResponse {
@@ -92,7 +100,11 @@ function describePeers(project: Project, agent: Agent): string {
   const nameOf = (id: string): string => project.agents.find((a) => a.id === id)?.name ?? id
   const names = (ids: string[]): string => (ids.length ? ids.map(nameOf).join(', ') : 'nobody yet')
 
-  const canReach = edges.filter((e) => e.from === agent.id && !e.paused).map((e) => e.to)
-  const reachedBy = edges.filter((e) => e.to === agent.id).map((e) => e.from)
+  // Lines to notes and portals aren't message lines; those are listed on their own.
+  const isAgent = (id: string): boolean => project.agents.some((a) => a.id === id)
+  const canReach = edges
+    .filter((e) => e.from === agent.id && !e.paused && isAgent(e.to))
+    .map((e) => e.to)
+  const reachedBy = edges.filter((e) => e.to === agent.id && isAgent(e.from)).map((e) => e.from)
   return `You can message: ${names(canReach)}. Can message you: ${names(reachedBy)}.`
 }

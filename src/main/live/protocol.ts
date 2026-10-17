@@ -12,6 +12,13 @@ export const SendRequestSchema = z.discriminatedUnion('op', [
     tool: z.string().optional(),
   }),
   z.object({ op: z.literal('dismiss'), name: z.string() }),
+  // Drive a browser portal linked on the canvas.
+  z.object({
+    op: z.literal('browser'),
+    action: z.string(),
+    args: z.array(z.string()),
+    portal: z.string().optional(),
+  }),
 ])
 
 export type SendRequest = z.infer<typeof SendRequestSchema>

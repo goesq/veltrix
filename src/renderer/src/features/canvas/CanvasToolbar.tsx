@@ -3,6 +3,7 @@ import {
   AlignCenterVertical,
   Bot,
   Copy,
+  Globe,
   Hand,
   LayoutGrid,
   ListChecks,
@@ -23,7 +24,7 @@ import { useAiTools } from '../../stores/aiTools'
 import { ALIGNMENTS, type Alignment } from './canvasModel'
 
 /** What a click on the empty canvas does. */
-export type CanvasTool = 'select' | 'hand' | 'note' | 'checklist' | 'text'
+export type CanvasTool = 'select' | 'hand' | 'note' | 'checklist' | 'text' | 'portal'
 
 /** Single-key shortcuts, active while nothing is being typed (as in Maestri and Figma). */
 export const TOOL_KEYS: Record<string, CanvasTool> = {
@@ -32,6 +33,7 @@ export const TOOL_KEYS: Record<string, CanvasTool> = {
   n: 'note',
   c: 'checklist',
   l: 'text',
+  p: 'portal',
 }
 /** Opens the agent menu. */
 export const AGENT_KEY = 't'
@@ -129,6 +131,7 @@ export function CanvasToolbar({
       {toolButton('note', t.canvas.tools.note, 'n', <StickyNote size={15} />)}
       {toolButton('checklist', t.canvas.tools.checklist, 'c', <ListChecks size={15} />)}
       {toolButton('text', t.canvas.tools.text, 'l', <Type size={15} />)}
+      {toolButton('portal', t.canvas.tools.portal, 'p', <Globe size={15} />)}
       <span className="mx-1 h-5 w-px bg-line" />
       <IconButton label={`${t.canvas.undo} (${mod}Z)`} onClick={onUndo} className="size-8">
         <Undo2 size={15} />

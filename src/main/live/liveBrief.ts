@@ -65,10 +65,26 @@ lists the ones you can reach.
 - Notes marked read-only are specs: follow them, never edit them.
 
 ${notes.length ? `Notes linked to you now:\n\n${describeNotes(notes)}` : 'No notes are linked to you yet.'}
-${agent.manager ? MANAGER_SECTION : ''}${managerName ? recruitSection(managerName) : ''}
+${PORTAL_SECTION}${agent.manager ? MANAGER_SECTION : ''}${managerName ? recruitSection(managerName) : ''}
 Wait for the user's instructions or for a message before doing anything else.
 `
 }
+
+const PORTAL_SECTION = `
+## Browser portals
+
+The user can link you to browser portals on the canvas: web pages you can drive.
+
+    ${SEND_COMMAND} --browser open <url>
+    ${SEND_COMMAND} --browser read                  (text, plus numbered links, buttons, fields)
+    ${SEND_COMMAND} --browser click <number|text>
+    ${SEND_COMMAND} --browser type <number|field> "text"   (end the text with \\n to press Enter)
+    ${SEND_COMMAND} --browser screenshot            (saves a PNG you can open)
+    ${SEND_COMMAND} --browser back
+
+Add \`--portal <name>\` when you are linked to more than one. Read the page again after
+anything that changes it. Never enter passwords or payment details; ask the user instead.
+`
 
 const MANAGER_SECTION = `
 ## Your team

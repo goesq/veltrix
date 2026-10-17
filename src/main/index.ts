@@ -5,6 +5,7 @@ import { app, BrowserWindow, nativeImage } from 'electron'
 import { resolveLocale } from '@shared/i18n'
 import { IpcChannel } from '@shared/ipc'
 import { CanvasService } from './canvas/CanvasService'
+import { PortalService } from './canvas/PortalService'
 import { NoteWatcher } from './canvas/NoteWatcher'
 import { loadLoginShellPath } from './infra/loginShellPath'
 import { registerIpc } from './ipc/registerIpc'
@@ -17,6 +18,7 @@ import { AgentRunner } from './orchestrator/agents/AgentRunner'
 import { Orchestrator } from './orchestrator/Orchestrator'
 import { createPlanner } from './orchestrator/planning/createPlanner'
 import { ProjectRepository } from './projects/ProjectRepository'
+import { WorktreeService } from './projects/WorktreeService'
 import { SettingsService } from './settings/SettingsService'
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smokeTest'
 import { SessionStore } from './terminal/SessionStore'
@@ -80,7 +82,14 @@ function bootstrap(): void {
     onStart: (info) => send(IpcChannel.liveStarted, info),
     onExit: (info) => send(IpcChannel.liveExit, info),
   })
-  const router = new MessageRouter(projects, live, messages, new TeamService(projects, live))
+  const portals = new PortalService()
+  const router = new MessageRouter(
+    projects,
+    live,
+    messages,
+    new TeamService(projects, live),
+    portals,
+  )
   sendServer
     .start((sender, request) => router.handle(sender, request))
     .catch((error: unknown) => {
@@ -101,6 +110,14 @@ function bootstrap(): void {
     messages,
     canvas,
     noteWatcher,
+    portals,
+    worktrees: new WorktreeService(
+      projects,
+      join(dataDir, 'worktrees'),
+      (projectId, agentId) =>
+        live.isRunning(projectId, agentId) ||
+        projects.get(projectId).tasks.some((t) => t.agentId === agentId && t.status === 'running'),
+    ),
   })
 
   installAppMenu()
