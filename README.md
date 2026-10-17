@@ -11,10 +11,19 @@ A clean, multi-tab terminal with built-in AI agent orchestration, for macOS and 
   Prompt, PowerShell 7, Git Bash, WSL distros; zsh, bash, fish on macOS). Terminals are named
   after their first command and reopen in the folder they were in; new ones start in the
   folder set in **Settings → Terminal** (your home folder by default).
-- **Projects**: point Veltrix at a folder, connect AI coding agents (Claude Code, Codex CLI,
-  Gemini CLI or any headless CLI), and send goals to an **orchestrator**. The orchestrator
-  splits each goal into tasks, routes them to the right agent, runs independent tasks in
-  parallel and passes results along to the tasks that depend on them.
+- **Projects**: point Veltrix at a folder and send goals to an **orchestrator**. It assembles
+  the team of AI coding agents the goal needs (Claude Code, Codex CLI, Gemini CLI and more, or
+  any headless CLI), splits the goal into tasks, routes them to the right agent, runs
+  independent tasks in parallel and ticks each one off as it finishes.
+- **Canvas**: an infinite board per project with live agents, markdown notes, checklists and
+  labels. Link agents so they message each other, and link them to notes so they read them
+  and tick checklist items off as they work. Good for brainstorming, too.
+
+New here? The [tutorial](docs/tutorial.md) walks through all of it, step by step.
+
+**[▶ Watch the one-minute demo](docs/media/veltrix-demo.mp4)**: the orchestrator assembles a
+team from a single prompt, then two agents work live on the canvas, message each other and
+tick a shared checklist off.
 
   
 
@@ -55,11 +64,16 @@ open it once from **System Settings → Privacy & Security → Open Anyway**.
 
 ## How orchestration works
 
-1. You describe a goal in a project.
-2. The **planner** (Claude Code CLI by default, or the Anthropic API with your own key)
-   returns a plan: tasks, the agent for each one and the dependencies between them.
+1. You describe a goal in a project. A project with no agents is fine: ask for the team you
+   want ("create a frontend and a backend agent and build the login") or let the planner
+   decide.
+2. The **planner** (Claude Code CLI by default; any CLI or API in **Settings → Orchestrator**)
+   returns a plan: the agents to add, if any, then the tasks, the agent for each one and the
+   dependencies between them. New agents get a name, a role and an installed CLI, and are
+   placed on the project's canvas.
 3. Tasks whose dependencies are done start right away. Each agent runs one task at a time;
-   different agents run in parallel.
+   different agents run in parallel. The goal shows its tasks as a checklist that ticks
+   itself off, with a progress bar.
 4. Each task gets a brief in `.veltrix/tasks/<id>.md` containing the goal, the task, and the
    results of the tasks it depends on. Agents also read and append to the shared
    `.veltrix/CONTEXT.md`, which you can edit from the app.
@@ -72,6 +86,44 @@ By default, agents may edit files in the project but are not given broader permi
 Claude Code runs with `--permission-mode acceptEdits`, Codex with
 `--sandbox workspace-write`, Gemini with `--approval-mode auto_edit`. Use a custom command
 for anything else.
+
+## The canvas
+
+Each project has a canvas (the **Canvas** tab) where agents run live, in their own
+interactive terminal, next to notes, checklists and labels. Pick a tool in the bar at the
+top, or press its key while nothing is being typed:
+
+| Tool                           | Key   |
+| ------------------------------ | ----- |
+| Select (drag to select several) | `V`  |
+| Pan                            | `H`   |
+| Agent: add one, or create one with an installed CLI | `T` |
+| Note                           | `N`   |
+| Checklist                      | `C`   |
+| Text label                     | `L`   |
+
+Hold `Space` or use the middle mouse button to pan with any tool, scroll to move around and
+pinch (or `Ctrl`/`⌘` + scroll) to zoom. Double-click a node's header to enlarge it into a
+panel; `Esc` puts it back. `Delete` removes the selected notes, labels and lines,
+`Ctrl`/`⌘` + `Z` undoes (deleted notes come back from `.veltrix/notes/.trash/`), `Ctrl`/`⌘` +
+`Shift` + `Z` redoes and `Ctrl`/`⌘` + `D` duplicates. With several items selected, the bar
+also arranges them in a grid.
+
+- **Manager agents** (the crown in an agent's header) assemble their own team: from its
+  terminal, a manager runs `veltrix-send --recruit <name> "<role>"` and the new agent appears
+  below it, linked both ways, and starts at once; `--dismiss <name>` removes it when its work
+  is done.
+- **Agents waiting for you** (quiet after printing something since you last typed to them)
+  get an amber "Waiting for you" in their header, and the Canvas tab counts them.
+- **Lines between agents** let the first one message the second with `veltrix-send`. Click a
+  line to pause it; a line that carries too many messages in a minute pauses itself.
+- **Notes** are markdown files in `.veltrix/notes/`. Link an agent to a note (drag from one
+  to the other) and it reads and edits that file; notes linked to each other form a chain
+  the agent can follow. A running agent is told about a note the moment you link it. Locked
+  notes are read-only on disk, so they work as specs.
+- **Checklists** are notes with `- [ ]` items. Agents tick items off (`- [x]`) as they finish
+  them, and the note updates on screen as it happens. Notes render headings, lists, tables,
+  code and links.
 
 ## Keyboard shortcuts
 
@@ -135,7 +187,9 @@ src/
     infra/          Persistence, shell resolution, ANSI handling
     terminal/       Interactive pty sessions (10-terminal limit is enforced here)
     projects/       Project storage and the per-project .veltrix workspace
-    orchestrator/   Planning, task graph, agent runs
+    orchestrator/   Planning (including the agents a plan adds), task graph, agent runs
+    live/           Live agent sessions on the canvas and the veltrix-send channel
+    canvas/         Canvas saves, note files and the watcher that picks up agents' edits
     settings/       Settings; the API key is encrypted with the OS keychain
     ipc/            Thin translation layer between IPC and the services
   preload/    Typed, minimal bridge exposed as window.veltrix
