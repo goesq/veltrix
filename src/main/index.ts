@@ -4,12 +4,15 @@ import { join } from 'node:path'
 import { app, BrowserWindow, nativeImage } from 'electron'
 import { resolveLocale } from '@shared/i18n'
 import { IpcChannel } from '@shared/ipc'
+import { CanvasService } from './canvas/CanvasService'
+import { NoteWatcher } from './canvas/NoteWatcher'
 import { loadLoginShellPath } from './infra/loginShellPath'
 import { registerIpc } from './ipc/registerIpc'
 import { LiveSessionService } from './live/LiveSessionService'
 import { MessageLog } from './live/MessageLog'
 import { MessageRouter } from './live/MessageRouter'
 import { SendServer } from './live/SendServer'
+import { TeamService } from './live/TeamService'
 import { AgentRunner } from './orchestrator/agents/AgentRunner'
 import { Orchestrator } from './orchestrator/Orchestrator'
 import { createPlanner } from './orchestrator/planning/createPlanner'
@@ -74,14 +77,18 @@ function bootstrap(): void {
   const sendServer = new SendServer(dataDir)
   const live = new LiveSessionService(sendServer, {
     onData: (projectId, agentId, data) => send(IpcChannel.liveData, { projectId, agentId, data }),
+    onStart: (info) => send(IpcChannel.liveStarted, info),
     onExit: (info) => send(IpcChannel.liveExit, info),
   })
-  const router = new MessageRouter(projects, live, messages)
+  const router = new MessageRouter(projects, live, messages, new TeamService(projects, live))
   sendServer
     .start((sender, request) => router.handle(sender, request))
     .catch((error: unknown) => {
       console.error('[live] Could not open the message channel for live agents.', error)
     })
+
+  const canvas = new CanvasService(projects, live)
+  const noteWatcher = new NoteWatcher(projects, (change) => send(IpcChannel.notesChanged, change))
 
   registerIpc({
     terminals,
@@ -92,6 +99,8 @@ function bootstrap(): void {
     settings,
     live,
     messages,
+    canvas,
+    noteWatcher,
   })
 
   installAppMenu()
@@ -106,6 +115,7 @@ function bootstrap(): void {
     mainWindow.on('closed', () => {
       terminals.killAll()
       live.stopAll()
+      noteWatcher.unwatchAll()
       mainWindow = null
     })
   }
@@ -126,6 +136,7 @@ function bootstrap(): void {
     terminals.killAll()
     live.stopAll()
     sendServer.stop()
+    noteWatcher.unwatchAll()
     orchestrator.shutdown()
   })
 }

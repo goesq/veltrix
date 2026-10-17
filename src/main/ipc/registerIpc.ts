@@ -14,6 +14,8 @@ import type {
 } from '@shared/types'
 import { isOnPath } from '../infra/shell'
 import { loadLoginShellPath } from '../infra/loginShellPath'
+import type { CanvasService } from '../canvas/CanvasService'
+import type { NoteWatcher } from '../canvas/NoteWatcher'
 import type { LiveSessionService } from '../live/LiveSessionService'
 import type { MessageLog } from '../live/MessageLog'
 import type { Orchestrator } from '../orchestrator/Orchestrator'
@@ -34,6 +36,8 @@ export interface Services {
   settings: SettingsService
   live: LiveSessionService
   messages: MessageLog
+  canvas: CanvasService
+  noteWatcher: NoteWatcher
 }
 
 /** Wires renderer requests to the services. This layer only translates; it holds no logic. */
@@ -46,6 +50,8 @@ export function registerIpc({
   settings,
   live,
   messages,
+  canvas,
+  noteWatcher,
 }: Services): void {
   ipcMain.handle(IpcChannel.terminalProfiles, () => shellProfiles.list())
   ipcMain.handle(IpcChannel.terminalCreate, (_e, options: TerminalCreateOptions) =>
@@ -158,8 +164,8 @@ export function registerIpc({
     live.buffer(projectId, agentId),
   )
   ipcMain.handle(IpcChannel.liveList, (_e, projectId: string) => live.list(projectId))
-  ipcMain.handle(IpcChannel.canvasSave, (_e, projectId: string, canvas: ProjectCanvas) =>
-    projects.saveCanvas(projectId, canvas),
+  ipcMain.handle(IpcChannel.canvasSave, (_e, projectId: string, next: ProjectCanvas) =>
+    canvas.save(projectId, next),
   )
   ipcMain.handle(
     IpcChannel.canvasSetEdgePaused,
@@ -167,6 +173,14 @@ export function registerIpc({
       projects.setEdgePaused(projectId, edgeId, paused),
   )
   ipcMain.handle(IpcChannel.canvasMessages, (_e, projectId: string) => messages.list(projectId))
+  ipcMain.handle(IpcChannel.notesRead, (_e, projectId: string, noteId: string) =>
+    canvas.readNote(projectId, noteId),
+  )
+  ipcMain.handle(IpcChannel.notesWrite, (_e, projectId: string, noteId: string, content: string) =>
+    canvas.writeNote(projectId, noteId, content),
+  )
+  ipcMain.handle(IpcChannel.notesWatch, (_e, projectId: string) => noteWatcher.watch(projectId))
+  ipcMain.handle(IpcChannel.notesUnwatch, (_e, projectId: string) => noteWatcher.unwatch(projectId))
 
   ipcMain.handle(IpcChannel.settingsGet, () => settings.get())
   ipcMain.handle(IpcChannel.settingsUpdate, (_e, patch: SettingsPatch) => settings.update(patch))

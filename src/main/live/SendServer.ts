@@ -63,17 +63,23 @@ export class SendServer implements SendChannel {
 
   private serve(socket: Socket): void {
     let input = ''
+    let answered = false
     socket.setEncoding('utf8')
     socket.on('error', () => socket.destroy())
     socket.on('data', (chunk) => {
+      if (answered) return
       input += chunk
       const end = input.indexOf('\n')
-      if (end >= 0) socket.end(JSON.stringify(this.respond(input.slice(0, end))))
-      else if (input.length > MAX_REQUEST_CHARS) socket.destroy()
+      if (end >= 0) {
+        answered = true
+        void this.respond(input.slice(0, end)).then((response) => {
+          if (!socket.destroyed) socket.end(JSON.stringify(response))
+        })
+      } else if (input.length > MAX_REQUEST_CHARS) socket.destroy()
     })
   }
 
-  private respond(line: string): SendResponse {
+  private async respond(line: string): Promise<SendResponse> {
     let parsed: unknown
     try {
       parsed = JSON.parse(line)
@@ -86,7 +92,11 @@ export class SendServer implements SendChannel {
 
     const request = SendRequestSchema.safeParse(parsed)
     if (!request.success || !this.handle) return { ok: false, error: 'Malformed request.' }
-    return this.handle(sender, request.data)
+    try {
+      return await this.handle(sender, request.data)
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
   }
 
   /** A stale socket file from a crashed run would block `listen` (macOS / Linux only). */

@@ -6,6 +6,7 @@ import type {
   ContextDocument,
   LiveSessionData,
   LiveSessionInfo,
+  NoteChange,
   Platform,
   Project,
   ProjectCanvas,
@@ -67,10 +68,16 @@ export const IpcChannel = {
   liveList: 'live:list',
   liveData: 'live:data',
   liveExit: 'live:exit',
+  liveStarted: 'live:started',
   canvasSave: 'canvas:save',
   canvasSetEdgePaused: 'canvas:set-edge-paused',
   canvasMessages: 'canvas:messages',
   canvasMessage: 'canvas:message',
+  notesRead: 'notes:read',
+  notesWrite: 'notes:write',
+  notesWatch: 'notes:watch',
+  notesUnwatch: 'notes:unwatch',
+  notesChanged: 'notes:changed',
 
   aiInstalledTools: 'ai:installed-tools',
   aiCheckPlanner: 'ai:check-planner',
@@ -137,6 +144,8 @@ export interface VeltrixApi {
     list(projectId: string): Promise<LiveSessionInfo[]>
     onData(listener: (event: LiveSessionData) => void): Unsubscribe
     onExit(listener: (info: LiveSessionInfo) => void): Unsubscribe
+    /** Sessions started from the main process too (a manager agent's recruits). */
+    onStarted(listener: (info: LiveSessionInfo) => void): Unsubscribe
   }
   canvas: {
     save(projectId: string, canvas: ProjectCanvas): Promise<Project>
@@ -144,6 +153,16 @@ export interface VeltrixApi {
     /** Recent messages between the project's live agents, oldest first. */
     messages(projectId: string): Promise<CanvasMessage[]>
     onMessage(listener: (message: CanvasMessage) => void): Unsubscribe
+  }
+  /** Markdown notes on a project's canvas, kept as files in the project. */
+  notes: {
+    read(projectId: string, noteId: string): Promise<string>
+    /** Refused while the note is locked. */
+    write(projectId: string, noteId: string, content: string): Promise<void>
+    /** Reports edits made outside the app (by agents) while the project's canvas is open. */
+    watch(projectId: string): Promise<void>
+    unwatch(projectId: string): Promise<void>
+    onChanged(listener: (change: NoteChange) => void): Unsubscribe
   }
   ai: {
     /** Which known CLIs (by executable name) are on the user's PATH. */

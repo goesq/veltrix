@@ -5,9 +5,12 @@ import { childEnv, prependToPath } from '../infra/environment'
 import { loadLoginShellPath } from '../infra/loginShellPath'
 import { commandShell } from '../infra/shell'
 import { ProjectWorkspace } from '../projects/ProjectWorkspace'
+import { linkedNotes } from './linkedNotes'
 import { buildLiveBrief, liveOpening } from './liveBrief'
 
 export interface LiveSessionEvents {
+  /** A session started; the renderer may not have asked for it (a manager's recruit). */
+  onStart(info: LiveSessionInfo): void
   onData(projectId: string, agentId: string, data: string): void
   onExit(info: LiveSessionInfo): void
 }
@@ -84,6 +87,8 @@ export class LiveSessionService {
         agent,
         projectName: project.name,
         contextFile: workspace.contextFile(agent.id).path,
+        notes: await linkedNotes(project, agent.id),
+        managerName: project.agents.find((a) => a.id === agent.recruitedBy)?.name,
       }),
     )
 
@@ -131,7 +136,9 @@ export class LiveSessionService {
       if (this.sessions.get(id) === session) this.sessions.delete(id)
       this.events.onExit({ projectId: project.id, agentId: agent.id, status: 'exited', exitCode })
     })
-    return { projectId: project.id, agentId: agent.id, status: 'running' }
+    const info: LiveSessionInfo = { projectId: project.id, agentId: agent.id, status: 'running' }
+    this.events.onStart(info)
+    return info
   }
 
   buffer(projectId: string, agentId: string): string {

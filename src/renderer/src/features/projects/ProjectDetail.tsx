@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Eraser, MoreHorizontal } from 'lucide-react'
 import type { Project } from '@shared/types'
 import { Button, IconButton } from '../../components/ui/Button'
@@ -8,6 +8,7 @@ import { useT } from '../../i18n'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { loadSizes, resizePair, saveSizes } from '../../lib/layoutSizes'
+import { useWaitingCount } from '../../stores/attention'
 import { CanvasView } from '../canvas/CanvasView'
 import { AgentsPanel } from './AgentsPanel'
 import { BetaBadge } from './BetaBadge'
@@ -58,6 +59,7 @@ export function ProjectDetail({ project }: { project: Project }) {
   const [dialog, setDialog] = useState<'edit' | 'remove' | null>(null)
   const t = useT()
   const split = useSplit()
+  const waiting = useWaitingCount(project.id)
   const [leftSize, rightSize] = split.sizes
 
   const goals = [...project.goals].sort((a, b) => b.createdAt - a.createdAt)
@@ -118,6 +120,14 @@ export function ProjectDetail({ project }: { project: Project }) {
         </TabButton>
         <TabButton active={tab === 'canvas'} onClick={() => setTab('canvas')}>
           {t.projects.tabs.canvas}
+          {waiting > 0 && (
+            <span
+              title={t.canvas.waitingCount(waiting)}
+              className="ml-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-tag-yellow/20 px-1 text-[11px] text-tag-yellow"
+            >
+              {waiting}
+            </span>
+          )}
         </TabButton>
         {tab === 'orchestrator' && hasFinished && (
           <Button
@@ -178,7 +188,7 @@ function TabButton({
 }: {
   active: boolean
   onClick(): void
-  children: string
+  children: ReactNode
 }) {
   return (
     <button

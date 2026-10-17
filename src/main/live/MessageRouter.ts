@@ -1,9 +1,12 @@
-import { EMPTY_CANVAS, type Agent, type Project } from '@shared/types'
+import { canvasOf } from '@shared/canvas'
+import type { Agent, Project } from '@shared/types'
 import type { ProjectRepository } from '../projects/ProjectRepository'
-import { formatIncoming } from './liveBrief'
+import { linkedNotes } from './linkedNotes'
+import { describeNotes, formatIncoming } from './liveBrief'
 import type { MessageLog } from './MessageLog'
 import type { Sender, SendRequest, SendResponse } from './protocol'
 import { RateGuard } from './RateGuard'
+import type { TeamService } from './TeamService'
 
 /** What the router needs from the live sessions to hand a message over. */
 export interface MessageDelivery {
@@ -27,16 +30,24 @@ export class MessageRouter {
     private readonly projects: ProjectRepository,
     private readonly delivery: MessageDelivery,
     private readonly log: MessageLog,
+    private readonly team: TeamService,
   ) {}
 
-  handle(sender: Sender, request: SendRequest): SendResponse {
+  async handle(sender: Sender, request: SendRequest): Promise<SendResponse> {
     const project = this.projects.find(sender.projectId)
     const from = project?.agents.find((a) => a.id === sender.agentId)
     if (!project || !from) return { ok: false, error: 'Your agent is no longer in this project.' }
 
-    return request.op === 'peers'
-      ? { ok: true, text: describePeers(project, from) }
-      : this.send(project, from, request.to, request.text)
+    if (request.op === 'send') return this.send(project, from, request.to, request.text)
+    if (request.op === 'recruit') {
+      return this.team.recruit(project, from, request.name, request.role, request.tool)
+    }
+    if (request.op === 'dismiss') return this.team.dismiss(project, from, request.name)
+    const notes = await linkedNotes(project, from.id)
+    const noteList = notes.length
+      ? `Notes you can read and edit:\n${describeNotes(notes)}`
+      : 'No notes are linked to you.'
+    return { ok: true, text: `${describePeers(project, from)}\n${noteList}` }
   }
 
   private send(project: Project, from: Agent, toName: string, rawText: string): SendResponse {
@@ -69,10 +80,6 @@ export class MessageRouter {
     }
     return undefined
   }
-}
-
-function canvasOf(project: Project) {
-  return project.canvas ?? EMPTY_CANVAS
 }
 
 function findAgent(project: Project, nameOrId: string): Agent | undefined {

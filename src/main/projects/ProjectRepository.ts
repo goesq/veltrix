@@ -1,4 +1,5 @@
 import { basename } from 'node:path'
+import { canvasOf, isNoteId, isPortalUrl, withAgentNodes, withRecruit } from '@shared/canvas'
 import {
   AGENT_COLORS,
   PROJECT_ICONS,
@@ -113,17 +114,57 @@ export class ProjectRepository {
     })
   }
 
-  /** Replaces the canvas layout, keeping only nodes and lines of agents that exist. */
+  /**
+   * Replaces the canvas, keeping only agents that exist, notes and portals with valid ids,
+   * portals on web pages, and lines whose two ends are agents, notes or portals.
+   */
   saveCanvas(projectId: string, canvas: ProjectCanvas): Project {
     return this.update(projectId, (project) => {
-      const known = new Set(project.agents.map((agent) => agent.id))
+      const agents = new Set(project.agents.map((agent) => agent.id))
+      const nodes = canvas.nodes.filter((node) => agents.has(node.agentId))
+      const notes = (canvas.notes ?? []).filter((note) => isNoteId(note.id))
+      const portals = (canvas.portals ?? [])
+        .filter((portal) => isNoteId(portal.id))
+        .map((portal) => (isPortalUrl(portal.url) ? portal : { ...portal, url: 'about:blank' }))
+      const linkable = new Set([
+        ...nodes.map((node) => node.agentId),
+        ...notes.map((n) => n.id),
+        ...portals.map((p) => p.id),
+      ])
       project.canvas = {
-        nodes: canvas.nodes.filter((node) => known.has(node.agentId)),
+        nodes,
+        notes,
+        texts: canvas.texts ?? [],
+        portals,
         edges: canvas.edges.filter(
-          (edge) => edge.from !== edge.to && known.has(edge.from) && known.has(edge.to),
+          (edge) => edge.from !== edge.to && linkable.has(edge.from) && linkable.has(edge.to),
         ),
       }
     })
+  }
+
+  /** Adds an agent a manager recruited, below the manager on the canvas and linked to it. */
+  addRecruit(projectId: string, input: AgentInput, managerId: string): Agent {
+    const agent: Agent = { ...input, id: newId(), recruitedBy: managerId }
+    this.update(projectId, (project) => {
+      const siblings = project.agents.filter((a) => a.recruitedBy === managerId).map((a) => a.id)
+      project.agents.push(agent)
+      project.canvas = withRecruit(canvasOf(project), managerId, agent.id, siblings)
+    })
+    return agent
+  }
+
+  /** Adds agents the orchestrator assembled, and places them on the canvas. */
+  addAgents(projectId: string, inputs: AgentInput[]): Agent[] {
+    const added = inputs.map((input) => ({ ...input, id: newId() }))
+    this.update(projectId, (project) => {
+      project.agents.push(...added)
+      project.canvas = withAgentNodes(
+        canvasOf(project),
+        added.map((agent) => agent.id),
+      )
+    })
+    return added
   }
 
   setEdgePaused(projectId: string, edgeId: string, paused: boolean): void {
@@ -150,6 +191,7 @@ export class ProjectRepository {
 
 function withoutAgent(canvas: ProjectCanvas, agentId: string): ProjectCanvas {
   return {
+    ...canvas,
     nodes: canvas.nodes.filter((node) => node.agentId !== agentId),
     edges: canvas.edges.filter((edge) => edge.from !== agentId && edge.to !== agentId),
   }

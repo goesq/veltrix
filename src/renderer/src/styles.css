@@ -216,19 +216,25 @@
   stroke-dasharray: 4 4;
   opacity: 0.45;
 }
+/* Lines to notes: quieter than message lines between agents. */
+.react-flow .canvas-edge-note path {
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
 /* Node resizing: every edge is a wide, invisible grab area; corners show on hover. */
-.react-flow__resize-control.line.agent-resize-line {
+.react-flow__resize-control.line.canvas-resize-line {
   border-color: transparent;
 }
-.react-flow__resize-control.line.agent-resize-line.left,
-.react-flow__resize-control.line.agent-resize-line.right {
+.react-flow__resize-control.line.canvas-resize-line.left,
+.react-flow__resize-control.line.canvas-resize-line.right {
   width: 10px;
 }
-.react-flow__resize-control.line.agent-resize-line.top,
-.react-flow__resize-control.line.agent-resize-line.bottom {
+.react-flow__resize-control.line.canvas-resize-line.top,
+.react-flow__resize-control.line.canvas-resize-line.bottom {
   height: 10px;
 }
-.react-flow__resize-control.handle.agent-resize-handle {
+.react-flow__resize-control.handle.canvas-resize-handle {
   width: 10px;
   height: 10px;
   border-radius: 2px;
@@ -237,7 +243,65 @@
   opacity: 0;
   transition: opacity 120ms;
 }
-.react-flow__node:hover .agent-resize-handle,
-.react-flow__node.selected .agent-resize-handle {
+.react-flow__node:hover .canvas-resize-handle,
+.react-flow__node.selected .canvas-resize-handle {
   opacity: 1;
+}
+/* A selected node gets a dashed outline, like a selection on a whiteboard. */
+.canvas-node-selected {
+  outline: 1px dashed var(--color-muted);
+  outline-offset: 3px;
+}
+/* Panning (hand tool or Space held): the pointer goes through nodes and lines to the canvas.
+   React Flow sets pointer-events inline on each node, hence !important. */
+.react-flow.canvas-panning .react-flow__node,
+.react-flow.canvas-panning .react-flow__node *,
+.react-flow.canvas-panning .react-flow__edge {
+  pointer-events: none !important;
+}
+/* While a note, checklist or text is being placed, the canvas shows where it will go. */
+.react-flow.canvas-placing .react-flow__pane {
+  cursor: crosshair;
+}
+
+/* Notes: the panel color, tinted by the note's color. */
+.canvas-note {
+  --note-tint: var(--color-line-strong);
+  background: color-mix(in srgb, var(--note-tint) 9%, var(--color-panel));
+  border-color: color-mix(in srgb, var(--note-tint) 32%, var(--color-line));
+}
+.canvas-note.note-plain {
+  --note-tint: transparent;
+  border-color: var(--color-line);
+}
+.canvas-note.note-yellow {
+  --note-tint: var(--color-tag-yellow);
+}
+.canvas-note.note-green {
+  --note-tint: var(--color-tag-green);
+}
+.canvas-note.note-blue {
+  --note-tint: var(--color-tag-blue);
+}
+.canvas-note.note-pink {
+  --note-tint: var(--color-tag-pink);
+}
+.canvas-note.note-purple {
+  --note-tint: var(--color-tag-purple);
+}
+
+/* A node lifted into a panel grows in from the canvas. */
+.lift-in {
+  animation: lift-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes lift-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift-in {
+    animation: none;
+  }
 }

@@ -1,6 +1,7 @@
 import { createWriteStream, existsSync, type WriteStream } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, sep } from 'node:path'
+import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path'
+import { notePath } from '@shared/canvas'
 import { PROJECT_WORKSPACE_DIR } from '@shared/constants'
 import { DEFAULT_PROJECT_CONTEXT, type Agent, type Project } from '@shared/types'
 
@@ -34,7 +35,7 @@ export interface ContextFile {
 
 /**
  * The `.veltrix/` folder inside a project: the shared context file that every agent reads,
- * one brief per task and the raw output log of each task run.
+ * one brief per task, the raw output log of each task run and the canvas notes.
  */
 export class ProjectWorkspace {
   constructor(private readonly project: Pick<Project, 'path' | 'context' | 'agents'>) {}
@@ -130,6 +131,61 @@ export class ProjectWorkspace {
     const path = `${PROJECT_WORKSPACE_DIR}/live/${agentId}.md`
     await this.writeFile(join(this.project.path, path), content)
     return path
+  }
+
+  /** Folder holding the canvas notes, one markdown file each. */
+  get notesDir(): string {
+    return join(this.root, 'notes')
+  }
+
+  /** Content of a canvas note; empty when its file is gone. */
+  async readNote(noteId: string): Promise<string> {
+    const file = this.noteFile(noteId)
+    return existsSync(file) ? readFile(file, 'utf8') : ''
+  }
+
+  async writeNote(noteId: string, content: string): Promise<void> {
+    await this.writeFile(this.noteFile(noteId), content)
+  }
+
+  /**
+   * Makes a note's file read-only (or writable again). Agents edit notes as plain files, so
+   * the file system is what keeps them from changing a locked one.
+   */
+  async setNoteLocked(noteId: string, locked: boolean): Promise<void> {
+    const file = this.noteFile(noteId)
+    if (existsSync(file)) await chmod(file, locked ? 0o444 : 0o644)
+  }
+
+  /**
+   * Moves a deleted note's file to `notes/.trash/`, so undoing the delete on the canvas can
+   * bring it back.
+   */
+  async trashNote(noteId: string): Promise<void> {
+    const file = this.noteFile(noteId)
+    if (!existsSync(file)) return
+    await chmod(file, 0o644) // A locked (read-only) file can't be moved on Windows.
+    await mkdir(this.trashDir, { recursive: true })
+    await rename(file, this.trashFile(noteId))
+  }
+
+  /** Brings a note's file back from the trash, if it is there and not already back. */
+  async restoreNote(noteId: string): Promise<void> {
+    const trashed = this.trashFile(noteId)
+    if (existsSync(this.noteFile(noteId)) || !existsSync(trashed)) return
+    await rename(trashed, this.noteFile(noteId))
+  }
+
+  private get trashDir(): string {
+    return join(this.notesDir, '.trash')
+  }
+
+  private trashFile(noteId: string): string {
+    return join(this.trashDir, basename(this.noteFile(noteId)))
+  }
+
+  private noteFile(noteId: string): string {
+    return join(this.project.path, notePath(noteId))
   }
 
   /** Opens (truncating) the output log of a task run. Writes through a stream keep chunk order. */

@@ -59,6 +59,11 @@ export const useLive = create<LiveState>((set) => ({
 }))
 
 // The main process is the source of truth for sessions and messages; mirror its events.
+api.live.onStarted(({ projectId, agentId }) =>
+  useLive.setState((state) => ({
+    running: { ...state.running, [sessionKey(projectId, agentId)]: true },
+  })),
+)
 api.live.onExit(({ projectId, agentId }) =>
   useLive.setState((state) => ({
     running: { ...state.running, [sessionKey(projectId, agentId)]: false },

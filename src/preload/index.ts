@@ -77,6 +77,7 @@ const api: VeltrixApi = {
     list: (projectId) => ipcRenderer.invoke(IpcChannel.liveList, projectId),
     onData: (listener) => subscribe(IpcChannel.liveData, listener),
     onExit: (listener) => subscribe(IpcChannel.liveExit, listener),
+    onStarted: (listener) => subscribe(IpcChannel.liveStarted, listener),
   },
   canvas: {
     save: (projectId, canvas) => ipcRenderer.invoke(IpcChannel.canvasSave, projectId, canvas),
@@ -84,6 +85,14 @@ const api: VeltrixApi = {
       ipcRenderer.invoke(IpcChannel.canvasSetEdgePaused, projectId, edgeId, paused),
     messages: (projectId) => ipcRenderer.invoke(IpcChannel.canvasMessages, projectId),
     onMessage: (listener) => subscribe(IpcChannel.canvasMessage, listener),
+  },
+  notes: {
+    read: (projectId, noteId) => ipcRenderer.invoke(IpcChannel.notesRead, projectId, noteId),
+    write: (projectId, noteId, content) =>
+      ipcRenderer.invoke(IpcChannel.notesWrite, projectId, noteId, content),
+    watch: (projectId) => ipcRenderer.invoke(IpcChannel.notesWatch, projectId),
+    unwatch: (projectId) => ipcRenderer.invoke(IpcChannel.notesUnwatch, projectId),
+    onChanged: (listener) => subscribe(IpcChannel.notesChanged, listener),
   },
   ai: {
     installedTools: () => ipcRenderer.invoke(IpcChannel.aiInstalledTools),

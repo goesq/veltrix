@@ -76,6 +76,10 @@ export interface Agent {
   contextFile?: string
   /** Permissions of this agent's live session on the canvas; missing means `ask`. */
   livePermission?: LivePermission
+  /** Its live session may recruit and dismiss agents on the canvas (a team lead). */
+  manager?: boolean
+  /** The manager agent that recruited this one, if any; only it may dismiss it. */
+  recruitedBy?: string
   color: AgentColor
 }
 
@@ -108,6 +112,8 @@ export interface Goal {
   prompt: string
   /** Planner's one-paragraph summary of the approach. */
   plan?: string
+  /** Agents the orchestrator added to the project for this goal. */
+  createdAgentIds?: string[]
   status: 'planning' | 'running' | 'done' | 'failed'
   error?: string
   createdAt: number
@@ -183,7 +189,42 @@ export interface CanvasAgentNode {
   height: number
 }
 
-/** A one-way link: the `from` agent may send messages to the `to` agent. */
+/** Colors a note can have; `plain` follows the app's panel color. */
+export const NOTE_COLORS = ['plain', 'yellow', 'green', 'blue', 'pink', 'purple'] as const
+export type NoteColor = (typeof NOTE_COLORS)[number]
+
+/**
+ * A markdown note on the canvas. Its content lives in `.veltrix/notes/<id>.md` inside the
+ * project, so agents connected to it read and edit a plain file.
+ */
+export interface CanvasNoteNode {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  color: NoteColor
+  /** Set by the user; missing means the note is named after its first line. */
+  title?: string
+  /** Read-only, for people and agents alike. */
+  locked?: boolean
+}
+
+/** A free-standing label on the canvas, to title areas or jot ideas down. */
+export interface CanvasTextNode {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  text: string
+}
+
+/**
+ * A line between two nodes. Between agents it is one-way: the `from` agent may send
+ * messages to the `to` agent. Between an agent and a note (either way) the agent may read
+ * and edit the note; between notes it chains them, so an agent linked to one reaches all.
+ */
 export interface CanvasEdge {
   id: string
   from: string
@@ -192,12 +233,39 @@ export interface CanvasEdge {
   paused?: boolean
 }
 
+/**
+ * A web page on the canvas (a "portal"). Agents linked to it can open pages, read them,
+ * click, type and take screenshots, through `veltrix-send --browser`.
+ */
+export interface CanvasPortalNode {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  /** Last page shown (http, https or about:blank). */
+  url: string
+  /** Set by the user; missing means the page's own title. */
+  title?: string
+}
+
 export interface ProjectCanvas {
   nodes: CanvasAgentNode[]
+  /** Missing on canvases saved before notes existed. */
+  notes?: CanvasNoteNode[]
+  texts?: CanvasTextNode[]
+  portals?: CanvasPortalNode[]
   edges: CanvasEdge[]
 }
 
-export const EMPTY_CANVAS: ProjectCanvas = { nodes: [], edges: [] }
+export const EMPTY_CANVAS: ProjectCanvas = { nodes: [], notes: [], texts: [], portals: [], edges: [] }
+
+/** A note's content changed on disk (an agent edited it, or another view saved it). */
+export interface NoteChange {
+  projectId: string
+  noteId: string
+  content: string
+}
 
 /** A live agent session on the canvas. */
 export interface LiveSessionInfo {

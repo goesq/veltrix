@@ -10,7 +10,12 @@ import { SEND_COMMAND } from './liveBrief'
 const CLIENT_SOURCE = `'use strict'
 const net = require('node:net')
 
-const USAGE = 'Usage: ${SEND_COMMAND} <agent> "message"   |   ${SEND_COMMAND} --peers'
+const USAGE = [
+  'Usage: ${SEND_COMMAND} <agent> "message"',
+  '       ${SEND_COMMAND} --peers',
+  '       ${SEND_COMMAND} --recruit <name> "<role>" [--tool <cli>]   (manager agents)',
+  '       ${SEND_COMMAND} --dismiss <name>                         (manager agents)',
+].join('\\n')
 const args = process.argv.slice(2)
 const socketPath = process.env.VELTRIX_SOCKET
 const token = process.env.VELTRIX_TOKEN
@@ -35,6 +40,17 @@ async function main() {
   let request
   if (args[0] === '--peers') {
     request = { op: 'peers' }
+  } else if (args[0] === '--recruit') {
+    const rest = args.slice(1)
+    const toolAt = rest.indexOf('--tool')
+    const tool = toolAt >= 0 ? rest[toolAt + 1] : undefined
+    if (toolAt >= 0) rest.splice(toolAt, 2)
+    const [name, ...role] = rest
+    if (!name || !role.join(' ').trim()) fail(USAGE)
+    request = { op: 'recruit', name, role: role.join(' '), tool }
+  } else if (args[0] === '--dismiss') {
+    if (!args[1]) fail(USAGE)
+    request = { op: 'dismiss', name: args[1] }
   } else {
     const [to, ...words] = args
     if (!to || to === '--help' || to === '-h') fail(USAGE)

@@ -4,6 +4,14 @@ import { z } from 'zod/v4'
 export const SendRequestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('peers') }),
   z.object({ op: z.literal('send'), to: z.string(), text: z.string() }),
+  // Manager agents only: grow or shrink their team on the canvas.
+  z.object({
+    op: z.literal('recruit'),
+    name: z.string(),
+    role: z.string(),
+    tool: z.string().optional(),
+  }),
+  z.object({ op: z.literal('dismiss'), name: z.string() }),
 ])
 
 export type SendRequest = z.infer<typeof SendRequestSchema>
@@ -16,4 +24,4 @@ export interface Sender {
   agentId: string
 }
 
-export type SendRequestHandler = (sender: Sender, request: SendRequest) => SendResponse
+export type SendRequestHandler = (sender: Sender, request: SendRequest) => Promise<SendResponse>

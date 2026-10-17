@@ -2,11 +2,23 @@ import type { Agent } from '@shared/types'
 
 export const SEND_COMMAND = 'veltrix-send'
 
+/** A canvas note as an agent sees it. */
+export interface NoteRef {
+  title: string
+  /** Relative to the project folder. */
+  path: string
+  locked?: boolean
+}
+
 interface LiveBriefInput {
   agent: Agent
   projectName: string
   /** Context file this agent reads (relative to the project, or absolute). */
   contextFile: string
+  /** Notes linked to the agent when the session starts. */
+  notes: NoteRef[]
+  /** Name of the manager that recruited this agent, if any. */
+  managerName?: string
 }
 
 /**
@@ -14,7 +26,13 @@ interface LiveBriefInput {
  * is told to read it first; it explains who the agent is and how to reach the others.
  * Who it may message changes as lines are drawn, so it asks Veltrix instead of a list here.
  */
-export function buildLiveBrief({ agent, projectName, contextFile }: LiveBriefInput): string {
+export function buildLiveBrief({
+  agent,
+  projectName,
+  contextFile,
+  notes,
+  managerName,
+}: LiveBriefInput): string {
   return `# You are ${agent.name}
 
 You are a live agent in Veltrix, working on the project "${projectName}" next to other agents.
@@ -35,8 +53,63 @@ a message from your shell:
 - Keep messages short and self-contained; the other agent does not see your screen.
 - Do not send a message just to acknowledge one, and stop when the conversation is done.
 
+## Notes
+
+The user can also link you to notes on the canvas: markdown files in the project that you
+read and edit directly, shared with the user and with other agents. \`${SEND_COMMAND} --peers\`
+lists the ones you can reach.
+
+- Treat a note as shared memory: keep it tidy and edit only what concerns you.
+- Checklists (\`- [ ] item\`) are work to do. When you finish an item, change it to
+  \`- [x] item\` in the file right away, so the user sees progress as it happens.
+- Notes marked read-only are specs: follow them, never edit them.
+
+${notes.length ? `Notes linked to you now:\n\n${describeNotes(notes)}` : 'No notes are linked to you yet.'}
+${agent.manager ? MANAGER_SECTION : ''}${managerName ? recruitSection(managerName) : ''}
 Wait for the user's instructions or for a message before doing anything else.
 `
+}
+
+const MANAGER_SECTION = `
+## Your team
+
+You are a manager: you can assemble a team of agents on the canvas.
+
+    ${SEND_COMMAND} --recruit <name> "<role>" [--tool claude|codex|gemini|...]
+    ${SEND_COMMAND} --dismiss <name>
+
+- A recruit appears below you, linked to you both ways, and starts at once with your own
+  agent CLI unless you pick another with \`--tool\`. Give it about 15 seconds to start, then
+  send it a self-contained task with \`${SEND_COMMAND} <name> "..."\`.
+- Recruit only for work that benefits from a separate agent (a distinct area, or parallel
+  work), keep the team small, and give each recruit a clear role.
+- Share your linked notes by naming their files in the task; tell recruits to tick checklist
+  items as they finish.
+- Dismiss recruits whose work is done.
+`
+
+function recruitSection(managerName: string): string {
+  return `
+## Your manager
+
+You were recruited by ${managerName}. Its messages are your tasks. When you finish one, report
+back with what you changed: \`${SEND_COMMAND} ${/\s/.test(managerName) ? `"${managerName}"` : managerName} "..."\`.
+`
+}
+
+/** One line per note: its name, file and whether it is read-only. */
+export function describeNotes(notes: NoteRef[]): string {
+  return notes
+    .map(
+      (note) => `- "${note.title || 'Untitled'}": ${note.path}${note.locked ? ' (read-only)' : ''}`,
+    )
+    .join('\n')
+}
+
+/** Told to a running agent when the user links it to notes. */
+export function formatNoteLink(notes: NoteRef[]): string {
+  const one = notes.length === 1
+  return `[Veltrix] You are now linked to ${one ? 'a note' : 'these notes'}:\n${describeNotes(notes)}\nRead ${one ? 'it' : 'them'} now. Tick checklist items (- [x]) in the file as you finish them.`
 }
 
 /** The short first instruction that points the agent at its brief. */

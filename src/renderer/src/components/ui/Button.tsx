@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
 import { cn } from '../../lib/cn'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -33,7 +33,8 @@ export function Button({ variant = 'secondary', icon, className, children, ...re
   )
 }
 
-interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+/** Takes a `ref` too (React 19 passes it as a prop), e.g. to open a menu by shortcut. */
+interface IconButtonProps extends ComponentProps<'button'> {
   label: string
   active?: boolean
 }
