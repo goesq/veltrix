@@ -1,5 +1,5 @@
 import '@xyflow/react/dist/style.css'
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -10,10 +10,11 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
 } from '@xyflow/react'
 import type { Project } from '@shared/types'
 import { useT } from '../../i18n'
-import { api } from '../../lib/api'
+import { api, isMac } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useLive } from '../../stores/live'
 import { AgentNode } from './AgentNode'
@@ -81,6 +82,7 @@ function Canvas({ project }: { project: Project }) {
   })
   // The hand tool, or Space held with any tool: dragging anywhere moves the canvas.
   const spaceHeld = useSpaceHeld(!lifted)
+  usePointerHeld(containerRef)
   const panning = tool === 'hand' || spaceHeld
 
   /** The middle of what is on screen, in canvas coordinates. */
@@ -129,14 +131,17 @@ function Canvas({ project }: { project: Project }) {
           onPaneClick={onPaneClick}
           connectionMode={ConnectionMode.Loose}
           deleteKeyCode={['Delete', 'Backspace']}
-          // Select: drag on the empty canvas draws a selection. Panning: drag moves the canvas,
-          // over nodes too (CSS lets the pointer through them). The middle and right buttons
-          // always pan. Space is handled by useSpaceHeld, not React Flow, which pans only
-          // on empty canvas.
-          selectionOnDrag={tool === 'select' && !panning}
-          panOnDrag={panning ? true : [1, 2]}
+          // Select: drag on the empty canvas draws a selection on Windows and Linux, where the
+          // middle and right buttons pan. A Mac trackpad has no middle button, so there a drag
+          // on the empty canvas pans and Shift + drag selects. Panning: drag moves the canvas,
+          // over nodes too (CSS lets the pointer through them). Space is handled by
+          // useSpaceHeld, not React Flow, which pans only on empty canvas.
+          selectionOnDrag={tool === 'select' && !panning && !isMac}
+          panOnDrag={panning || isMac ? true : [1, 2]}
           panActivationKeyCode={null}
           panOnScroll
+          // A trackpad swipe follows the fingers one to one; a mouse wheel steps at half speed.
+          panOnScrollSpeed={isMac ? 1 : 0.5}
           snapToGrid
           snapGrid={[GRID, GRID]}
           minZoom={0.15}
@@ -145,6 +150,7 @@ function Canvas({ project }: { project: Project }) {
           fitViewOptions={{ maxZoom: 1, padding: 0.2 }}
           proOptions={{ hideAttribution: true }}
         >
+          <HandleScale target={containerRef} />
           <Background variant={BackgroundVariant.Dots} gap={GRID} size={1.2} />
           <Controls showInteractive={false} position="bottom-right" />
           <MiniMap pannable zoomable position="bottom-left" className="!bg-surface" />
@@ -192,6 +198,22 @@ function Canvas({ project }: { project: Project }) {
       </div>
     </CanvasActionsContext.Provider>
   )
+}
+
+/** Zoomed out, handles would shrink with the nodes; up to this factor they keep their size. */
+const MAX_HANDLE_SCALE = 3
+
+/**
+ * Keeps resize corners and line handles easy to grab at any zoom, through a CSS variable on
+ * the canvas (set here rather than in Canvas, so zooming doesn't re-render the whole canvas).
+ */
+function HandleScale({ target }: { target: RefObject<HTMLDivElement | null> }) {
+  const zoom = useStore((s) => s.transform[2])
+  useEffect(() => {
+    const scale = Math.min(MAX_HANDLE_SCALE, Math.max(1, 1 / zoom))
+    target.current?.style.setProperty('--canvas-handle-scale', String(scale))
+  }, [target, zoom])
+  return null
 }
 
 interface CanvasShortcuts {
@@ -270,6 +292,30 @@ function useCanvasShortcuts(shortcuts: CanvasShortcuts): void {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+}
+
+/**
+ * Marks the canvas with `canvas-pointer-held` while a button is down on it. A portal's page
+ * would otherwise swallow the pointer once a line, a drag or a resize passes over it, and the
+ * release never reaches the canvas. Presses inside a page don't reach here, so it stays usable.
+ */
+function usePointerHeld(target: RefObject<HTMLDivElement | null>): void {
+  useEffect(() => {
+    const element = target.current
+    if (!element) return
+    const press = (): void => element.classList.add('canvas-pointer-held')
+    const release = (): void => element.classList.remove('canvas-pointer-held')
+    element.addEventListener('pointerdown', press, true)
+    window.addEventListener('pointerup', release, true)
+    window.addEventListener('pointercancel', release, true)
+    window.addEventListener('blur', release)
+    return () => {
+      element.removeEventListener('pointerdown', press, true)
+      window.removeEventListener('pointerup', release, true)
+      window.removeEventListener('pointercancel', release, true)
+      window.removeEventListener('blur', release)
+    }
+  }, [target])
 }
 
 /** Whether Space is being held on the canvas (not typed into a field, a note or a terminal). */

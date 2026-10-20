@@ -64,7 +64,13 @@ export function useCanvas(project: Project) {
 
   // Re-sync only when the stored canvas or the agents change, not on every project update
   // (task progress), so a drag in progress isn't reset.
-  const syncKey = JSON.stringify([canvas.nodes, canvas.notes, canvas.texts, project.agents])
+  const syncKey = JSON.stringify([
+    canvas.nodes,
+    canvas.notes,
+    canvas.texts,
+    canvas.portals,
+    project.agents,
+  ])
   useEffect(() => {
     setNodes((current) => {
       const selected = new Set(current.filter((n) => n.selected).map((n) => n.id))
