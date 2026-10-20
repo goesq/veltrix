@@ -122,6 +122,7 @@ press `Enter` to enlarge the selected node.
 
 To move around with any tool, scroll (or swipe on a trackpad), hold `Space` and drag, or
 drag with the middle mouse button. Pinch, or hold `Ctrl` / `⌘` and scroll, to zoom.
+On macOS, dragging the empty canvas pans too, and `Shift` + drag draws a selection.
 `Delete` removes the selected notes, labels and lines; the **×** on an agent takes it off the
 canvas (the agent stays in the project).
 

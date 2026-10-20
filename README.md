@@ -107,7 +107,8 @@ top, or press its key while nothing is being typed:
 | Enlarge the selected node      | `Enter` |
 
 Hold `Space` or use the middle mouse button to pan with any tool, scroll to move around and
-pinch (or `Ctrl`/`⌘` + scroll) to zoom. Double-click a node's header to enlarge it into a
+pinch (or `Ctrl`/`⌘` + scroll) to zoom. On macOS, dragging the empty canvas also pans and
+`Shift` + drag selects. Double-click a node's header to enlarge it into a
 panel; `Esc` puts it back. `Delete` removes the selected notes, labels and lines,
 `Ctrl`/`⌘` + `Z` undoes (deleted notes come back from `.veltrix/notes/.trash/`), `Ctrl`/`⌘` +
 `Shift` + `Z` redoes and `Ctrl`/`⌘` + `D` duplicates. With several items selected, the bar
