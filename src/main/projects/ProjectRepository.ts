@@ -27,6 +27,7 @@ export class ProjectRepository {
   private readonly store: JsonStore<StoredProjects>
   private readonly projects: Map<string, Project>
   private readonly listeners = new Set<ProjectListener>()
+  private readonly removeListeners = new Set<(projectId: string) => void>()
 
   constructor(filePath: string) {
     this.store = new JsonStore<StoredProjects>(filePath, { projects: [] })
@@ -36,6 +37,11 @@ export class ProjectRepository {
   onChange(listener: ProjectListener): () => void {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
+  }
+
+  onRemove(listener: (projectId: string) => void): () => void {
+    this.removeListeners.add(listener)
+    return () => this.removeListeners.delete(listener)
   }
 
   list(): Project[] {
@@ -95,6 +101,7 @@ export class ProjectRepository {
   remove(projectId: string): void {
     this.projects.delete(projectId)
     this.store.write({ projects: this.list() })
+    for (const listener of this.removeListeners) listener(projectId)
   }
 
   /** Creates or edits an agent. Its worktree is Veltrix's to set (setWorktree), never the caller's. */

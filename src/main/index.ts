@@ -7,6 +7,7 @@ import { IpcChannel } from '@shared/ipc'
 import { CanvasService } from './canvas/CanvasService'
 import { PortalService } from './canvas/PortalService'
 import { NoteWatcher } from './canvas/NoteWatcher'
+import { IdeBridge } from './ide/IdeBridge'
 import { loadLoginShellPath } from './infra/loginShellPath'
 import { registerIpc } from './ipc/registerIpc'
 import { LiveSessionService } from './live/LiveSessionService'
@@ -63,12 +64,16 @@ function bootstrap(): void {
     onExit: (event) => send(IpcChannel.terminalExit, event),
   })
 
+  let ideBridge: IdeBridge | undefined
   const orchestrator = new Orchestrator(
     projects,
     new AgentRunner(),
     () => createPlanner(settings, settings.get().plannerEngine),
     {
-      onTaskOutput: (event) => send(IpcChannel.orchestratorTaskOutput, event),
+      onTaskOutput: (event) => {
+        send(IpcChannel.orchestratorTaskOutput, event)
+        ideBridge?.taskOutput(event)
+      },
     },
   )
   orchestrator.recoverInterruptedWork()
@@ -78,9 +83,15 @@ function bootstrap(): void {
   const messages = new MessageLog((message) => send(IpcChannel.canvasMessage, message))
   const sendServer = new SendServer(dataDir)
   const live = new LiveSessionService(sendServer, {
-    onData: (projectId, agentId, data) => send(IpcChannel.liveData, { projectId, agentId, data }),
+    onData: (projectId, agentId, data) => {
+      send(IpcChannel.liveData, { projectId, agentId, data })
+      ideBridge?.liveData(projectId, agentId, data)
+    },
     onStart: (info) => send(IpcChannel.liveStarted, info),
-    onExit: (info) => send(IpcChannel.liveExit, info),
+    onExit: (info) => {
+      send(IpcChannel.liveExit, info)
+      ideBridge?.liveExit(info.projectId, info.agentId)
+    },
   })
   const portals = new PortalService()
   const router = new MessageRouter(
@@ -95,6 +106,17 @@ function bootstrap(): void {
     .catch((error: unknown) => {
       console.error('[live] Could not open the message channel for live agents.', error)
     })
+
+  // Veltrix IDE connects here to list projects, send goals and follow tasks.
+  ideBridge = new IdeBridge(projects, orchestrator, {
+    name: app.getName(),
+    version: app.getVersion(),
+  })
+  if (!smokeTest) {
+    ideBridge.start().catch((error: unknown) => {
+      console.error('[ide] Could not open the IDE bridge.', error)
+    })
+  }
 
   const canvas = new CanvasService(projects, live)
   const noteWatcher = new NoteWatcher(projects, (change) => send(IpcChannel.notesChanged, change))
@@ -153,6 +175,7 @@ function bootstrap(): void {
     terminals.killAll()
     live.stopAll()
     sendServer.stop()
+    ideBridge?.stop()
     noteWatcher.unwatchAll()
     orchestrator.shutdown()
   })
