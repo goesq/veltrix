@@ -80,17 +80,23 @@ function bootstrap(): void {
   projects.onChange((project) => send(IpcChannel.projectsChanged, project))
 
   // Live agents on the canvas: their sessions, and the channel they message each other through.
-  const messages = new MessageLog((message) => send(IpcChannel.canvasMessage, message))
+  const messages = new MessageLog((message) => {
+    send(IpcChannel.canvasMessage, message)
+    ideBridge?.canvasMessage(message)
+  })
   const sendServer = new SendServer(dataDir)
   const live = new LiveSessionService(sendServer, {
     onData: (projectId, agentId, data) => {
       send(IpcChannel.liveData, { projectId, agentId, data })
       ideBridge?.liveData(projectId, agentId, data)
     },
-    onStart: (info) => send(IpcChannel.liveStarted, info),
+    onStart: (info) => {
+      send(IpcChannel.liveStarted, info)
+      ideBridge?.liveStarted(info)
+    },
     onExit: (info) => {
       send(IpcChannel.liveExit, info)
-      ideBridge?.liveExit(info.projectId, info.agentId)
+      ideBridge?.liveExit(info)
     },
   })
   const portals = new PortalService()
@@ -107,8 +113,10 @@ function bootstrap(): void {
       console.error('[live] Could not open the message channel for live agents.', error)
     })
 
-  // Veltrix IDE connects here to list projects, send goals and follow tasks.
-  ideBridge = new IdeBridge(projects, orchestrator, {
+  const canvas = new CanvasService(projects, live)
+
+  // Veltrix IDE connects here to list projects, send goals, follow tasks and show the canvas.
+  ideBridge = new IdeBridge(projects, orchestrator, live, canvas, messages, {
     name: app.getName(),
     version: app.getVersion(),
   })
@@ -118,7 +126,6 @@ function bootstrap(): void {
     })
   }
 
-  const canvas = new CanvasService(projects, live)
   const noteWatcher = new NoteWatcher(projects, (change) => send(IpcChannel.notesChanged, change))
 
   registerIpc({

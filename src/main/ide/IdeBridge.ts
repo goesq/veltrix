@@ -4,7 +4,11 @@ import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { createServer, type Server, type Socket } from 'node:net'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Project } from '@shared/types'
+import type { AgentTool } from '@shared/ai'
+import type { CanvasMessage, LiveSessionInfo, Project } from '@shared/types'
+import type { CanvasService } from '../canvas/CanvasService'
+import type { LiveSessionService } from '../live/LiveSessionService'
+import type { MessageLog } from '../live/MessageLog'
 import type { Orchestrator } from '../orchestrator/Orchestrator'
 import type { ProjectRepository } from '../projects/ProjectRepository'
 import {
@@ -16,8 +20,8 @@ import {
   type BridgeResponse,
 } from './protocol'
 
-/** Longest request line accepted; the bridge only receives short commands. */
-const MAX_REQUEST_CHARS = 128_000
+/** Longest request line accepted: a whole canvas or a note fits, a runaway client doesn't. */
+const MAX_REQUEST_CHARS = 2_000_000
 /** A client that doesn't say hello this fast is not an IDE. */
 const HELLO_TIMEOUT_MS = 5000
 /** Quiet this long after real output counts as a live agent waiting for the user. */
@@ -29,14 +33,16 @@ const MIN_OUTPUT_CHARS = 80
 export const discoveryFile = (): string => join(homedir(), '.veltrix', 'ide-bridge.json')
 
 /**
- * A local socket for Veltrix IDE: lists projects, sends goals, retries tasks and streams
- * changes and task output. Clients find it through a discovery file holding the socket
+ * A local socket for Veltrix IDE: lists projects, sends goals, retries tasks, edits the
+ * canvas, drives live agent sessions and streams changes and output. Clients find it through a discovery file holding the socket
  * address and a secret token created at every launch.
  */
 export class IdeBridge {
   private readonly token = randomBytes(24).toString('hex')
   private readonly socketPath: string
   private readonly clients = new Set<Socket>()
+  /** Projects whose live agents' output each client asked to receive. */
+  private readonly liveSubscriptions = new Map<Socket, Set<string>>()
   private server: Server | undefined
   private readonly offProjects: (() => void)[] = []
 
@@ -48,6 +54,9 @@ export class IdeBridge {
   constructor(
     private readonly projects: ProjectRepository,
     private readonly orchestrator: Orchestrator,
+    private readonly live: LiveSessionService,
+    private readonly canvas: CanvasService,
+    private readonly messages: MessageLog,
     private readonly app: { name: string; version: string },
   ) {
     const name = `veltrix-ide-${process.pid}-${randomBytes(4).toString('hex')}`
@@ -85,13 +94,33 @@ export class IdeBridge {
   }
 
   /** Task output from the orchestrator, for IDEs following a task. */
-  taskOutput(event: { projectId: string; taskId: string; runStartedAt: number; data: string }): void {
+  taskOutput(event: {
+    projectId: string
+    taskId: string
+    runStartedAt: number
+    data: string
+  }): void {
     this.broadcast({ event: 'taskOutput', ...event })
+  }
+
+  /** A live agent session started (from the app, an IDE or a manager's recruit). */
+  liveStarted(session: LiveSessionInfo): void {
+    this.broadcast({ event: 'liveStarted', session })
+  }
+
+  /** One live agent messaged another (or tried to). */
+  canvasMessage(message: CanvasMessage): void {
+    this.broadcast({ event: 'canvasMessage', message })
   }
 
   /** A live agent printed something. */
   liveData(projectId: string, agentId: string, data: string): void {
     const key = `${projectId}:${agentId}`
+    const line = `${JSON.stringify({ event: 'liveData', projectId, agentId, data } satisfies BridgeEvent)}
+`
+    for (const [client, subscribed] of this.liveSubscriptions) {
+      if (subscribed.has(projectId) && !client.destroyed) client.write(line)
+    }
     this.outputChars.set(key, (this.outputChars.get(key) ?? 0) + data.length)
     this.setWaiting(projectId, agentId, false)
     clearTimeout(this.quietTimers.get(key))
@@ -106,8 +135,10 @@ export class IdeBridge {
   }
 
   /** A live agent session ended. */
-  liveExit(projectId: string, agentId: string): void {
+  liveExit(session: LiveSessionInfo): void {
+    const { projectId, agentId } = session
     const key = `${projectId}:${agentId}`
+    this.broadcast({ event: 'liveExit', session })
     clearTimeout(this.quietTimers.get(key))
     this.quietTimers.delete(key)
     this.outputChars.delete(key)
@@ -150,6 +181,7 @@ export class IdeBridge {
     socket.on('close', () => {
       clearTimeout(hello)
       this.clients.delete(socket)
+      this.liveSubscriptions.delete(socket)
     })
     socket.on('data', (chunk: string) => {
       input += chunk
@@ -174,10 +206,19 @@ export class IdeBridge {
   /** Handles one line; resolves true when it authenticated the client. */
   private async receive(socket: Socket, line: string, authenticated: boolean): Promise<boolean> {
     let request: BridgeRequest
+    let raw: unknown
     try {
-      request = BridgeRequestSchema.parse(JSON.parse(line))
+      raw = JSON.parse(line)
+      request = BridgeRequestSchema.parse(raw)
     } catch {
-      this.reply(socket, { id: -1, ok: false, error: 'Malformed request.' })
+      // Answered with the request's own id when it has one, so a client asking for an op
+      // this version doesn't know (a newer IDE) fails at once instead of waiting.
+      const id = (raw as { id?: unknown } | null)?.id
+      this.reply(socket, {
+        id: typeof id === 'number' ? id : -1,
+        ok: false,
+        error: 'Malformed request, or an operation this version of Veltrix does not have.',
+      })
       if (!authenticated) socket.destroy()
       return false
     }
@@ -200,7 +241,7 @@ export class IdeBridge {
       return false
     }
     try {
-      this.reply(socket, { id: request.id, ok: true, data: await this.handle(request) })
+      this.reply(socket, { id: request.id, ok: true, data: await this.handle(request, socket) })
     } catch (error) {
       this.reply(socket, {
         id: request.id,
@@ -211,7 +252,10 @@ export class IdeBridge {
     return false
   }
 
-  private async handle(request: Exclude<BridgeRequest, { op: 'hello' }>): Promise<unknown> {
+  private async handle(
+    request: Exclude<BridgeRequest, { op: 'hello' }>,
+    socket: Socket,
+  ): Promise<unknown> {
     switch (request.op) {
       case 'projects':
         return {
@@ -235,6 +279,71 @@ export class IdeBridge {
         return null
       case 'taskLog':
         return await this.orchestrator.taskLog(request.projectId, request.taskId)
+
+      // The saved canvas comes back to every client (and the app's window) as a `project` event.
+      case 'canvasSave':
+        await this.canvas.save(request.projectId, request.canvas)
+        return null
+      case 'canvasSetEdgePaused':
+        this.projects.setEdgePaused(request.projectId, request.edgeId, request.paused)
+        return null
+      case 'canvasMessages':
+        return this.messages.list(request.projectId)
+      case 'noteRead':
+        return await this.canvas.readNote(request.projectId, request.noteId)
+      case 'noteWrite':
+        await this.canvas.writeNote(request.projectId, request.noteId, request.content)
+        return null
+
+      case 'liveSubscribe': {
+        const subscribed = this.liveSubscriptions.get(socket) ?? new Set<string>()
+        if (request.on) subscribed.add(request.projectId)
+        else subscribed.delete(request.projectId)
+        this.liveSubscriptions.set(socket, subscribed)
+        return null
+      }
+      case 'liveList':
+        return this.live.list(request.projectId)
+      case 'liveStart': {
+        const project = this.projects.get(request.projectId)
+        const agent = project.agents.find((a) => a.id === request.agentId)
+        if (!agent) throw new Error('This agent was removed from the project.')
+        return await this.live.start(project, agent, request.cols, request.rows)
+      }
+      case 'liveStop':
+        this.live.stop(request.projectId, request.agentId)
+        return null
+      case 'liveWrite':
+        this.live.write(request.projectId, request.agentId, request.data)
+        return null
+      case 'liveResize':
+        this.live.resize(request.projectId, request.agentId, request.cols, request.rows)
+        return null
+      case 'liveBuffer':
+        return this.live.buffer(request.projectId, request.agentId)
+
+      case 'agentCreate':
+        return this.projects.saveAgent(request.projectId, {
+          name: request.name.trim(),
+          role: '',
+          provider: request.provider as AgentTool,
+          color: request.color,
+        })
+      case 'agentUpdate': {
+        const agent = this.projects
+          .get(request.projectId)
+          .agents.find((a) => a.id === request.agentId)
+        if (!agent) throw new Error('This agent was removed from the project.')
+        // Both are read when a session starts, so they only change while it is stopped.
+        if (this.live.isRunning(request.projectId, request.agentId)) {
+          throw new Error('Stop the agent before changing this.')
+        }
+        return this.projects.saveAgent(request.projectId, {
+          ...agent,
+          ...(request.livePermission ? { livePermission: request.livePermission } : {}),
+          ...(request.manager === undefined ? {} : { manager: request.manager }),
+        })
+      }
     }
   }
 
